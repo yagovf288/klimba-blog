@@ -1,0 +1,43 @@
+---
+// Header.astro - Cabeçalho do Blog do Klimba
+---
+<header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#f0f2f4]">
+  <div class="px-4 md:px-10 py-4 flex items-center justify-between max-w-7xl mx-auto">
+    <div class="flex items-center gap-4 text-secondary">
+      <a href="/" class="flex items-center gap-2">
+        <img
+          src="/assets/klimba.svg"
+          style="height: 32px;"
+          alt="Klimba Logo"
+        />
+        <span class="text-2xl font-black tracking-tight font-display">Klimba</span>
+      </a>
+    </div>
+    <div class="hidden md:flex gap-8 items-center">
+      <a
+        class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+        href="https://klimba.com.br/solucoes"
+      >
+        Soluções
+      </a>
+      <a
+        class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+        href="/"
+      >
+        Blog
+      </a>
+      <a
+        class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+        href="https://klimba.com.br/#contato"
+      >
+        Contato
+      </a>
+    </div>
+    <button
+      class="inline-flex h-12 items-center justify-center rounded-full bg-primary px-8 text-sm font-bold text-secondary shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all hover:scale-105"
+      onclick="window.location.href = 'https://app.klimba.com.br'"
+    >
+      Começar Agora
+    </button>
+  </div>
+</header>

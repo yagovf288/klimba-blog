@@ -1,0 +1,49 @@
+---
+// Footer.astro - Rodapé do Blog do Klimba
+const currentYear = new Date().getFullYear();
+---
+<footer
+  class="bg-secondary text-slate-400 py-20 border-t border-slate-800"
+  id="contato"
+>
+  <div
+    class="max-w-7xl mx-auto px-4 md:px-10 flex flex-col md:flex-row justify-between items-center md:items-start gap-12"
+  >
+    <div class="flex flex-col gap-6 text-center md:text-left">
+      <div
+        class="flex items-center gap-2 justify-center md:justify-start text-white"
+      >
+        <img
+          src="/assets/klimba.svg"
+          style="height: 40px; filter: brightness(0) invert(1);"
+          alt="Klimba Logo"
+        />
+        <span class="text-3xl font-black tracking-tight font-display">Klimba</span>
+      </div>
+      <p class="text-base max-w-xs leading-relaxed">
+        Gere Demanda Inteligente. Transforme tráfego em recorrência e aumente seu LTV.
+      </p>
+    </div>
+    <div class="flex gap-16 text-sm text-left">
+      <div class="flex flex-col gap-4">
+        <span class="text-white font-bold mb-2 uppercase tracking-widest text-xs">Plataforma</span>
+        <a class="hover:text-primary transition-colors" href="https://klimba.com.br/solucoes">Soluções</a>
+        <a class="hover:text-primary transition-colors" href="/">Blog</a>
+      </div>
+      <div class="flex flex-col gap-4">
+        <span class="text-white font-bold mb-2 uppercase tracking-widest text-xs">Suporte</span>
+        <a
+          class="hover:text-primary transition-colors"
+          href="mailto:suporte@klimba.com.br"
+          >Fale Conosco</a
+        >
+        <a class="hover:text-primary transition-colors" href="https://linkedin.com/company/klimba" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      </div>
+    </div>
+  </div>
+  <div
+    class="max-w-7xl mx-auto px-4 md:px-10 mt-20 pt-8 border-t border-white/5 text-center md:text-left text-xs tracking-wider"
+  >
+    &copy; <span>{currentYear}</span> Klimba. Todos os direitos reservados.
+  </div>
+</footer>

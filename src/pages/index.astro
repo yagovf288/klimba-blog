@@ -1,0 +1,201 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { blogService } from '../services/blogService';
+import { Category } from '../types';
+
+// Ler parâmetros de busca e categorias da URL
+const searchParam = Astro.url.searchParams.get('search') || '';
+const categoryParam = Astro.url.searchParams.get('category') || Category.TODOS;
+
+let posts = [];
+let pageInfo = null;
+let titleSEO = 'Klimba | Gere Demanda Inteligente - Blog';
+let descriptionSEO = 'Estratégias de retenção, CRM e marketing direto para o varejo físico. Transforme tráfego em recorrência.';
+
+try {
+  if (searchParam) {
+    posts = await blogService.searchPosts(searchParam);
+    titleSEO = `Resultados para "${searchParam}" | Klimba Blog`;
+  } else if (categoryParam && categoryParam !== Category.TODOS) {
+    const response = await blogService.getPostsByCategory(categoryParam as Category, 1);
+    posts = response.list;
+    pageInfo = response.pageInfo;
+    const catFormatted = categoryParam.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    titleSEO = `Categoria: ${catFormatted} | Klimba Blog`;
+  } else {
+    const response = await blogService.getAllPosts(1);
+    posts = response.list;
+    pageInfo = response.pageInfo;
+  }
+} catch (error) {
+  console.error("Erro ao carregar postagens no servidor:", error);
+}
+
+// Post em destaque (Featured)
+const featuredPost = posts.find(p => p.isFeatured) || posts[0];
+---
+
+<Layout title={titleSEO} description={descriptionSEO} image={featuredPost?.imageUrl}>
+  <div class="bg-background-light">
+    <!-- Category Sub-Nav (Pure HTML links for instant SSR filtering & SEO crawlers) -->
+    <div class="bg-white/90 backdrop-blur-md border-b border-gray-100 overflow-x-auto sticky top-[72px] z-40 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-2 py-4 min-w-max">
+          {Object.values(Category).map((cat) => {
+            const isActive = categoryParam === cat;
+            const queryUrl = cat === Category.TODOS ? '/' : `/?category=${cat}`;
+            const label = cat === Category.TODOS 
+              ? 'Ver Tudo' 
+              : cat.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+            
+            return (
+              <a
+                href={queryUrl}
+                class={`px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
+                  isActive
+                    ? 'bg-secondary text-primary shadow-lg shadow-secondary/10'
+                    : 'text-text-muted hover:text-secondary hover:bg-gray-100'
+                }`}
+              >
+                {label}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero Section / Featured Post -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      {!featuredPost ? (
+        <div class="w-full text-center py-24 bg-white rounded-4xl border border-gray-100 shadow-sm">
+          <span class="material-symbols-outlined text-8xl text-gray-200 mb-6">feed</span>
+          <p class="text-text-muted font-bold text-xl uppercase tracking-widest">Nenhuma publicação encontrada</p>
+        </div>
+      ) : (
+        <a href={`/post/${featuredPost.slug}`} class="grid grid-cols-1 lg:grid-cols-12 gap-0 items-stretch bg-white rounded-4xl shadow-xl shadow-secondary/5 border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all duration-500">
+          <div class="lg:col-span-7 p-8 md:p-12 lg:p-16 order-2 lg:order-1 flex flex-col justify-center">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="bg-primary/20 text-secondary border border-primary/30 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Destaque</span>
+              <span class="text-text-muted text-xs font-semibold tracking-wide">{featuredPost.readTime}</span>
+            </div>
+            <h2 class="text-4xl md:text-5xl lg:text-6xl font-black text-secondary leading-[1.1] mb-6 group-hover:text-primary transition-colors font-display">
+              {featuredPost.title}
+            </h2>
+            <p class="text-text-muted text-lg md:text-xl mb-10 leading-relaxed line-clamp-3 font-body">
+              {featuredPost.excerpt}
+            </p>
+            <div>
+              <span class="inline-flex items-center justify-center h-14 px-8 rounded-full bg-secondary text-primary font-black text-sm uppercase tracking-widest transition-all duration-300 group-hover:bg-primary group-hover:text-secondary">
+                Ler Artigo Completo
+              </span>
+            </div>
+          </div>
+          <div class="lg:col-span-5 order-1 lg:order-2 h-80 lg:h-auto relative overflow-hidden">
+            <img 
+              src={featuredPost.imageUrl} 
+              alt={featuredPost.title}
+              class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+            />
+          </div>
+        </a>
+      )}
+    </section>
+
+    <!-- Main Content Grid -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        
+        <!-- Main List -->
+        <div class="lg:col-span-8 flex flex-col gap-12">
+          <div class="flex items-center justify-between border-b border-gray-100 pb-6">
+            <div class="flex items-center gap-4">
+              <h3 class="text-3xl font-black text-secondary font-display tracking-tight">
+                {searchParam ? `Resultados da Pesquisa` : `Últimos Insights`}
+              </h3>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-8">
+            {posts.filter(p => p.id !== featuredPost?.id).map(post => (
+              <article class="bg-white rounded-3xl border border-gray-100 overflow-hidden flex flex-col hover:shadow-xl transition-all duration-500 group">
+                <a href={`/post/${post.slug}`} class="block h-56 overflow-hidden relative">
+                  <img 
+                    src={post.imageUrl} 
+                    alt={post.title}
+                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div class="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-secondary shadow-sm">
+                    {post.category.replace(/_/g, ' ')}
+                  </div>
+                </a>
+                <div class="p-8 flex flex-col flex-1">
+                  <h4 class="text-2xl font-bold text-secondary mb-4 leading-tight group-hover:text-primary transition-colors font-display">
+                    <a href={`/post/${post.slug}`}>{post.title}</a>
+                  </h4>
+                  <p class="text-text-muted text-sm line-clamp-3 mb-6 flex-1 leading-relaxed font-body">
+                    {post.excerpt}
+                  </p>
+                  <a href={`/post/${post.slug}`} class="text-secondary font-black text-xs uppercase tracking-widest inline-flex items-center gap-2 hover:gap-4 transition-all">
+                    Continuar lendo <span class="material-symbols-outlined text-sm text-primary">arrow_forward</span>
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {posts.filter(p => p.id !== featuredPost?.id).length === 0 && posts.length > 0 && (
+            <div class="py-12 text-center text-text-muted">
+              Você já viu o artigo em destaque.
+            </div>
+          )}
+
+          {posts.length === 0 && (
+            <div class="col-span-full py-24 text-center">
+              <span class="material-symbols-outlined text-8xl text-gray-200 mb-6">search_off</span>
+              <p class="text-text-muted font-bold text-xl uppercase tracking-widest">Nenhum resultado para "{searchParam}"</p>
+              <a href="/" class="mt-4 inline-flex px-6 py-2 bg-secondary text-primary rounded-full font-bold text-xs uppercase">Ver tudo</a>
+            </div>
+          )}
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="lg:col-span-4 space-y-10">
+          <!-- Search Form (Native HTML GET submits directly to server SSR) -->
+          <div class="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm">
+            <h3 class="text-sm font-black uppercase tracking-widest text-secondary mb-6">Pesquisa</h3>
+            <form action="/" method="GET" class="relative">
+              <input 
+                type="text" 
+                name="search"
+                value={searchParam}
+                class="w-full pl-12 pr-6 py-4 bg-background-light border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-shadow font-body" 
+                placeholder="O que você procura?" 
+              />
+              <button type="submit" class="absolute left-4 top-4 text-text-muted hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-xl">search</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Promotion/CTA Card -->
+          <div class="bg-secondary p-10 rounded-4xl border border-white/5 relative overflow-hidden shadow-2xl">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl -mr-16 -mt-16"></div>
+            <div class="relative z-10">
+              <h3 class="text-2xl font-black text-primary mb-4 font-display leading-tight">Gere Demanda Inteligente</h3>
+              <p class="text-slate-400 text-sm mb-8 leading-relaxed font-body">
+                Transforme seu varejo físico com o CRM que as lojas de elite usam. Recorrência sem fricção.
+              </p>
+              <a 
+                href="https://klimba.com.br"
+                class="block text-center w-full bg-primary text-secondary font-black text-xs uppercase tracking-widest py-4 rounded-full hover:bg-primary-hover transition-all"
+              >
+                Conhecer a Klimba
+              </a>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+</Layout>

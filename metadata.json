@@ -1,0 +1,8 @@
+{
+  "name": "Enrivo Blog - Operação & Estratégia",
+  "description": "Uma plataforma de blog moderna para insights sobre eficiência operacional, BPO financeiro e estratégia de dados, utilizando React, Tailwind e integração com Gemini API.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

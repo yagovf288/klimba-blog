@@ -1,0 +1,95 @@
+---
+// Layout.astro - Layout Principal com Metatags dinâmicas para SEO
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  articleDate?: string;
+  authorName?: string;
+}
+
+const {
+  title = "Klimba | Blog | Gere Demanda Inteligente",
+  description = "Estratégias de retenção, CRM e marketing direto para o varejo físico. Transforme tráfego em recorrência.",
+  image = "/assets/klimba-og.png",
+  articleDate,
+  authorName,
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site || Astro.url.origin);
+---
+
+<!doctype html>
+<html lang="pt-BR" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/assets/klimba.svg" />
+    
+    <!-- Primary Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={articleDate ? "article" : "website"} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image.startsWith('http') ? image : new URL(image, Astro.url.origin)} />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={image.startsWith('http') ? image : new URL(image, Astro.url.origin)} />
+
+    <!-- Article Metadata -->
+    {articleDate && <meta property="article:published_time" content={articleDate} />}
+    {authorName && <meta property="article:author" content={authorName} />}
+
+    <!-- Preconnect Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-background-light text-text-main antialiased min-h-screen flex flex-col font-body">
+    <Header />
+    <main class="flex-grow">
+      <slot />
+    </main>
+    <Footer />
+
+    <style is:global>
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        font-family: 'Manrope', sans-serif;
+      }
+      .prose blockquote {
+        border-left-color: #3BE3D2;
+        font-style: italic;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f4;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3BE3D2;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #2BCBC0;
+      }
+    </style>
+  </body>
+</html>
