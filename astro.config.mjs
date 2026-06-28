@@ -1,4 +1,4 @@
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
@@ -15,4 +15,12 @@ export default defineConfig({
     }),
     react()
   ],
+  env: {
+    schema: {
+      VITE_SUPABASE_URL: envField.string({ context: 'server', access: 'secret' }),
+      VITE_SUPABASE_ANON_KEY: envField.string({ context: 'server', access: 'secret' }),
+      GEMINI_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+      API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+    }
+  }
 });

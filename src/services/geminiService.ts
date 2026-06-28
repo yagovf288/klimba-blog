@@ -1,9 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
+import { GEMINI_API_KEY, API_KEY } from 'astro:env/server';
 
-const apiKey = import.meta.env.GEMINI_API_KEY || 
-               import.meta.env.API_KEY || 
-               (typeof process !== 'undefined' ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '') || 
-               '';
+const apiKey = GEMINI_API_KEY || API_KEY || '';
 
 export const geminiService = {
   async getArticleInsight(title: string, content: string): Promise<string> {

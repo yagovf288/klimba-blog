@@ -1,15 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { Category } from '../types';
 import type { BlogPost, Author, PageInfo } from '../types';
+import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from 'astro:env/server';
 
-// Carrega as chaves do Supabase priorizando variáveis do servidor Astro e fallback para process.env ou chaves legadas VITE_
-const supabaseUrl = (import.meta.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL) || 
-                    (typeof process !== 'undefined' ? (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) : '') || 
-                    'https://bmwexlxsjznbpyoqxvfu.supabase.co';
-
-const supabaseKey = (import.meta.env.SUPABASE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_KEY) || 
-                    (typeof process !== 'undefined' ? (process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_KEY) : '') || 
-                    '';
+const supabaseUrl = VITE_SUPABASE_URL || 'https://bmwexlxsjznbpyoqxvfu.supabase.co';
+const supabaseKey = VITE_SUPABASE_ANON_KEY;
 
 // Conectando ao Supabase no schema 'blog'
 const supabase = createClient(supabaseUrl, supabaseKey, {
