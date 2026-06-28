@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { BlogPost, Category, Author, PageInfo } from '../types';
+import { Category } from '../types';
+import type { BlogPost, Author, PageInfo } from '../types';
 
 // Carrega as chaves do Supabase priorizando variáveis do servidor Astro e fallback para process.env ou chaves legadas VITE_
 const supabaseUrl = (import.meta.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL) || 
