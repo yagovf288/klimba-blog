@@ -1,0 +1,6 @@
+---
+// logout.astro - Rota para encerrar sessão
+Astro.cookies.delete('sb-access-token', { path: '/' });
+Astro.cookies.delete('sb-refresh-token', { path: '/' });
+return Astro.redirect('/admin/login');
+---

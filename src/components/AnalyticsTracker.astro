@@ -1,0 +1,158 @@
+---
+// AnalyticsTracker.astro - Script cliente para monitoramento de visitas
+---
+<script>
+  (() => {
+    // 1. Gerenciamento de Sessão Unívoca
+    let sessionId = sessionStorage.getItem('klimba_sid');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : 'sid_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      sessionStorage.setItem('klimba_sid', sessionId);
+    }
+
+    // 2. Extração Básica de Dispositivo e Navegador
+    const getDeviceDetails = () => {
+      const ua = navigator.userAgent;
+      let browser = "Outro";
+      let os = "Outro";
+      let deviceType = "Desktop";
+
+      // Navegador
+      if (ua.includes("Firefox")) browser = "Firefox";
+      else if (ua.includes("SamsungBrowser")) browser = "Samsung";
+      else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+      else if (ua.includes("Trident")) browser = "IE";
+      else if (ua.includes("Edge") || ua.includes("Edg")) browser = "Edge";
+      else if (ua.includes("Chrome")) browser = "Chrome";
+      else if (ua.includes("Safari")) browser = "Safari";
+
+      // Sistema Operacional
+      if (ua.includes("Windows")) os = "Windows";
+      else if (ua.includes("Macintosh") || ua.includes("Mac OS")) os = "macOS";
+      else if (ua.includes("Android")) os = "Android";
+      else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+      else if (ua.includes("Linux")) os = "Linux";
+
+      // Tipo de Dispositivo
+      if (/Mobi|Android|iPhone|iPod/i.test(ua)) {
+        deviceType = "Mobile";
+      } else if (/Tablet|iPad|PlayBook|Silicon/i.test(ua)) {
+        deviceType = "Tablet";
+      }
+
+      return { browser, os, deviceType };
+    };
+
+    const details = getDeviceDetails();
+
+    // 3. Registrar Page View Inicial
+    const trackPageView = () => {
+      const payload = {
+        type: 'pageview',
+        data: {
+          session_id: sessionId,
+          url: window.location.href,
+          path: window.location.pathname,
+          referrer: document.referrer || '',
+          browser: details.browser,
+          os: details.os,
+          device_type: details.deviceType,
+          screen_width: window.innerWidth,
+          screen_height: window.innerHeight
+        }
+      };
+
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).catch(err => console.warn("Analytics error:", err));
+    };
+
+    trackPageView();
+
+    // 4. Medição de Tempo na Página (Heartbeats)
+    let secondsSpent = 0;
+    const sendHeartbeat = () => {
+      const payload = {
+        type: 'heartbeat',
+        data: {
+          session_id: sessionId,
+          duration_seconds: secondsSpent
+        }
+      };
+
+      // Tenta usar sendBeacon para garantir entrega se o usuário fechar a aba
+      const url = '/api/analytics/track';
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, blob);
+      } else {
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true
+        });
+      }
+    };
+
+    // Incrementa contador a cada 1 segundo e envia batimento de tempo a cada 15 segundos
+    const heartbeatInterval = setInterval(() => {
+      secondsSpent += 1;
+      if (secondsSpent % 15 === 0) {
+        sendHeartbeat();
+      }
+    }, 1000);
+
+    // Enviar o último status no encerramento da página
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        sendHeartbeat();
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      sendHeartbeat();
+      clearInterval(heartbeatInterval);
+    });
+
+    // 5. Rastreamento de Cliques
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      // Encontrar link ou botão mais próximo
+      const interactiveEl = target.closest('a, button, [role="button"], .track-click');
+      if (!interactiveEl) return;
+
+      const elementId = interactiveEl.id || '';
+      const elementClass = interactiveEl.className || '';
+      const elementText = (interactiveEl.textContent || '').trim().substring(0, 100);
+      const targetUrl = interactiveEl.getAttribute('href') || '';
+
+      const payload = {
+        type: 'click',
+        data: {
+          session_id: sessionId,
+          url: window.location.href,
+          element_id: elementId,
+          element_class: elementClass,
+          element_text: elementText,
+          target_url: targetUrl
+        }
+      };
+
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).catch(err => console.warn("Analytics click error:", err));
+    });
+  })();
+</script>

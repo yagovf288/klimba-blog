@@ -1,0 +1,235 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { blogService } from '../../services/blogService';
+import { createClient } from '@supabase/supabase-js';
+import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from 'astro:env/server';
+
+let successMessage = '';
+let errorMessage = '';
+
+const supabaseBlog = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, {
+  db: { schema: 'blog' }
+});
+
+const supabaseAnalytics = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, {
+  db: { schema: 'analytics' }
+});
+
+// Tratar ação de exclusão (Delete)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action')?.toString();
+    const postId = formData.get('id')?.toString();
+
+    if (action === 'delete' && postId) {
+      const { error } = await supabaseBlog.from('posts').delete().eq('id', postId);
+      if (error) {
+        errorMessage = 'Erro ao tentar excluir o artigo: ' + error.message;
+      } else {
+        successMessage = 'Artigo excluído com sucesso!';
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    errorMessage = 'Falha ao processar exclusão.';
+  }
+}
+
+// 1. Carregar posts do Blog
+let posts = [];
+try {
+  const response = await blogService.getAllPosts(1, 100);
+  posts = response.list;
+} catch (e) {
+  console.error("Erro ao carregar posts:", e);
+}
+
+// 2. Carregar Métricas do Analytics
+let totalViews = 0;
+let uniqueVisitors = 0;
+let avgDuration = 0;
+
+try {
+  // Visualizações totais (page views)
+  const { count } = await supabaseAnalytics
+    .from('page_views')
+    .select('*', { count: 'exact', head: true });
+  totalViews = count || 0;
+
+  // Visitantes únicos (sessões distintas)
+  const { data: pageViewsData } = await supabaseAnalytics
+    .from('page_views')
+    .select('session_id');
+  if (pageViewsData) {
+    uniqueVisitors = new Set(pageViewsData.map(pv => pv.session_id)).size;
+  }
+
+  // Tempo médio de sessão (em segundos)
+  const { data: sessionsData } = await supabaseAnalytics
+    .from('sessions')
+    .select('duration_seconds');
+  if (sessionsData && sessionsData.length > 0) {
+    const totalDuration = sessionsData.reduce((acc, s) => acc + s.duration_seconds, 0);
+    avgDuration = Math.round(totalDuration / sessionsData.length);
+  }
+} catch (e) {
+  console.error("Erro ao carregar analytics:", e);
+}
+
+const formatDuration = (secs: number) => {
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  const remSecs = secs % 60;
+  return `${mins}m ${remSecs}s`;
+};
+---
+
+<Layout title="Dashboard Administrativo | Klimba">
+  <div class="bg-background-light min-h-screen py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Cabeçalho do Admin -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-8 mb-12 gap-6">
+        <div>
+          <h1 class="text-4xl font-black text-secondary font-display">Painel Administrativo</h1>
+          <p class="text-text-muted mt-2">Monitore audiência e gerencie postagens do blog.</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <a
+            href="/admin/new"
+            class="inline-flex h-14 items-center justify-center rounded-full bg-primary px-8 text-xs font-black uppercase tracking-widest text-secondary shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all hover:scale-105"
+          >
+            Novo Artigo
+            <span class="material-symbols-outlined ml-2 text-sm">add</span>
+          </a>
+          <a
+            href="/admin/logout"
+            class="inline-flex h-14 items-center justify-center rounded-full bg-white border-2 border-red-200 px-8 text-xs font-black uppercase tracking-widest text-red-600 hover:bg-red-50 transition-all"
+          >
+            Sair
+          </a>
+        </div>
+      </div>
+
+      <!-- Feedback de Mensagens -->
+      {successMessage && (
+        <div class="mb-8 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-3xl text-sm font-semibold flex items-center gap-3 animate-in fade-in">
+          <span class="material-symbols-outlined text-lg">check_circle</span>
+          {successMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div class="mb-8 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-3xl text-sm font-semibold flex items-center gap-3 animate-in fade-in">
+          <span class="material-symbols-outlined text-lg">error</span>
+          {errorMessage}
+        </div>
+      )}
+
+      <!-- Cards de Métricas (Analytics) -->
+      <h2 class="text-xs font-black uppercase tracking-[0.2em] text-text-muted mb-6">Métricas de Tráfego (Últimos Dias)</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <!-- Visualizações -->
+        <div class="bg-white p-8 rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-black uppercase tracking-widest text-text-muted block mb-2">Visualizações Totais</span>
+            <span class="text-4xl font-black text-secondary font-display">{totalViews}</span>
+          </div>
+          <div class="size-14 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined text-3xl">visibility</span>
+          </div>
+        </div>
+
+        <!-- Visitantes Únicos -->
+        <div class="bg-white p-8 rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-black uppercase tracking-widest text-text-muted block mb-2">Visitantes Únicos</span>
+            <span class="text-4xl font-black text-secondary font-display">{uniqueVisitors}</span>
+          </div>
+          <div class="size-14 rounded-3xl bg-secondary/10 flex items-center justify-center text-secondary">
+            <span class="material-symbols-outlined text-3xl">group</span>
+          </div>
+        </div>
+
+        <!-- Tempo de Leitura -->
+        <div class="bg-white p-8 rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-black uppercase tracking-widest text-text-muted block mb-2">Tempo Médio na Página</span>
+            <span class="text-4xl font-black text-secondary font-display">{formatDuration(avgDuration)}</span>
+          </div>
+          <div class="size-14 rounded-3xl bg-teal-100 flex items-center justify-center text-teal-700">
+            <span class="material-symbols-outlined text-3xl">timer</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Artigos -->
+      <div class="bg-white rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 overflow-hidden">
+        <div class="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+          <h2 class="text-xl font-black text-secondary font-display">Gerenciar Biblioteca de Artigos</h2>
+          <span class="bg-secondary/10 text-secondary px-3 py-1 rounded-full text-xs font-bold">{posts.length} {posts.length === 1 ? 'Artigo' : 'Artigos'}</span>
+        </div>
+
+        {posts.length === 0 ? (
+          <div class="p-16 text-center text-text-muted">
+            <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">import_contacts</span>
+            <p class="font-bold text-lg">Nenhum artigo criado ainda.</p>
+            <p class="text-sm mt-1">Clique em "Novo Artigo" para começar a escrever.</p>
+          </div>
+        ) : (
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-background-light text-secondary text-xs font-black uppercase tracking-widest border-b border-gray-100">
+                  <th class="px-8 py-4">Título</th>
+                  <th class="px-8 py-4">Categoria</th>
+                  <th class="px-8 py-4">Publicado em</th>
+                  <th class="px-8 py-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 text-sm">
+                {posts.map(post => (
+                  <tr class="hover:bg-background-light/50 transition-colors">
+                    <td class="px-8 py-5 font-bold text-secondary max-w-md truncate">
+                      {post.title}
+                      {post.isFeatured && (
+                        <span class="ml-2 bg-primary/20 text-secondary border border-primary/30 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest">Destaque</span>
+                      )}
+                    </td>
+                    <td class="px-8 py-5 text-text-muted">
+                      {post.category.replace(/_/g, ' ')}
+                    </td>
+                    <td class="px-8 py-5 text-text-muted">
+                      {post.publishDate}
+                    </td>
+                    <td class="px-8 py-5 text-right flex items-center justify-end gap-3">
+                      <a
+                        href={`/admin/edit/${post.id}`}
+                        class="size-10 rounded-2xl bg-secondary/5 text-secondary hover:bg-secondary hover:text-primary transition-all flex items-center justify-center"
+                        title="Editar Artigo"
+                      >
+                        <span class="material-symbols-outlined text-lg">edit</span>
+                      </a>
+                      <form method="POST" onsubmit="return confirm('Tem certeza de que deseja excluir este artigo permanentemente?');">
+                        <input type="hidden" name="action" value="delete" />
+                        <input type="hidden" name="id" value={post.id} />
+                        <button
+                          type="submit"
+                          class="size-10 rounded-2xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center"
+                          title="Excluir Artigo"
+                        >
+                          <span class="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      
+    </div>
+  </div>
+</Layout>

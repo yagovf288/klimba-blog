@@ -1,0 +1,243 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { Category } from '../../types';
+import { createClient } from '@supabase/supabase-js';
+import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from 'astro:env/server';
+
+let errorMessage = '';
+
+const supabaseBlog = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, {
+  db: { schema: 'blog' }
+});
+
+// 1. Carregar lista de Autores
+let authors = [];
+try {
+  const { data, error } = await supabaseBlog.from('authors').select('*');
+  if (error) throw error;
+  authors = data || [];
+} catch (e) {
+  console.error("Erro ao carregar autores:", e);
+}
+
+// 2. Tratar envio do formulário (POST)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    
+    const title = formData.get('title')?.toString() || '';
+    const slug = formData.get('slug')?.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || '';
+    const excerpt = formData.get('excerpt')?.toString() || '';
+    const category = formData.get('category')?.toString() || Category.TRAZER_CLIENTES;
+    const authorId = formData.get('author_id')?.toString() || '';
+    const readTime = formData.get('read_time')?.toString() || '5 min de leitura';
+    const imageUrl = formData.get('image_url')?.toString() || '';
+    const content = formData.get('content')?.toString() || '';
+    const isFeatured = formData.get('is_featured') === 'true';
+    const publishDate = new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    if (!title || !slug || !content || !authorId) {
+      errorMessage = 'Por favor, preencha todos os campos obrigatórios (Título, Slug, Autor e Conteúdo).';
+    } else {
+      // Inserir na tabela posts
+      const { error } = await supabaseBlog.from('posts').insert({
+        title,
+        slug,
+        excerpt,
+        category,
+        author_id: parseInt(authorId),
+        read_time: readTime,
+        image_url: imageUrl,
+        content,
+        is_featured: isFeatured,
+        publish_date: publishDate
+      });
+
+      if (error) {
+        errorMessage = 'Erro ao salvar no banco de dados: ' + error.message;
+      } else {
+        return Astro.redirect('/admin');
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao criar artigo:", err);
+    errorMessage = 'Erro ao processar criação de artigo.';
+  }
+}
+---
+
+<Layout title="Criar Artigo | Klimba Admin">
+  <div class="bg-background-light min-h-screen py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Cabeçalho -->
+      <div class="flex items-center justify-between border-b border-gray-200 pb-6 mb-10">
+        <div>
+          <h1 class="text-3xl font-black text-secondary font-display">Escrever Novo Artigo</h1>
+          <p class="text-text-muted mt-1">Crie um insight estratégico focado em atração e CRM de varejo.</p>
+        </div>
+        <a
+          href="/admin"
+          class="inline-flex h-12 items-center justify-center rounded-full bg-white border-2 border-secondary px-6 text-xs font-black uppercase tracking-widest text-secondary hover:bg-secondary hover:text-primary transition-all"
+        >
+          Voltar
+        </a>
+      </div>
+
+      <!-- Erros -->
+      {errorMessage && (
+        <div class="mb-8 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-3xl text-sm font-semibold flex items-center gap-3">
+          <span class="material-symbols-outlined text-lg">error</span>
+          {errorMessage}
+        </div>
+      )}
+
+      <!-- Formulário -->
+      <form method="POST" class="bg-white p-10 rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 space-y-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          <!-- Título -->
+          <div class="md:col-span-2">
+            <label for="title" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Título do Artigo *</label>
+            <input
+              type="text"
+              name="title"
+              id="title"
+              required
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-bold font-body"
+              placeholder="ex: Como o WhatsApp automatizado aumenta o retorno do cliente físico"
+              oninput="document.getElementById('slug').value = this.value.toLowerCase().replace(/[^a-z0-9\s]+/g, '').replace(/\s+/g, '-')"
+            />
+          </div>
+
+          <!-- Slug -->
+          <div>
+            <label for="slug" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Slug da URL *</label>
+            <input
+              type="text"
+              name="slug"
+              id="slug"
+              required
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-text-muted font-body"
+              placeholder="slug-url-amigavel"
+            />
+          </div>
+
+          <!-- Categoria -->
+          <div>
+            <label for="category" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Categoria *</label>
+            <select
+              name="category"
+              id="category"
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body font-bold"
+            >
+              {Object.values(Category).filter(cat => cat !== Category.TODOS).map(cat => (
+                <option value={cat}>{cat.replace(/_/g, ' ')}</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Autor -->
+          <div>
+            <label for="author_id" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Autor *</label>
+            <select
+              name="author_id"
+              id="author_id"
+              required
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body font-bold"
+            >
+              <option value="">Selecione um autor...</option>
+              {authors.map(a => (
+                <option value={a.id}>{a.name} ({a.role})</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Tempo de leitura -->
+          <div>
+            <label for="read_time" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Tempo de Leitura</label>
+            <input
+              type="text"
+              name="read_time"
+              id="read_time"
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
+              placeholder="ex: 5 min de leitura"
+            />
+          </div>
+
+          <!-- URL da Imagem -->
+          <div class="md:col-span-2">
+            <label for="image_url" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">URL da Imagem de Capa</label>
+            <input
+              type="url"
+              name="image_url"
+              id="image_url"
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
+              placeholder="https://exemplo.com/imagem.png"
+            />
+          </div>
+
+          <!-- Excerpt / Descrição -->
+          <div class="md:col-span-2">
+            <label for="excerpt" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Resumo / Excerpt (SEO) *</label>
+            <textarea
+              name="excerpt"
+              id="excerpt"
+              rows="3"
+              required
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
+              placeholder="Uma breve introdução ou resumo do que será abordado no artigo..."
+            ></textarea>
+          </div>
+
+          <!-- Conteúdo em Markdown -->
+          <div class="md:col-span-2">
+            <label for="content" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Corpo do Artigo (Suporta Markdown) *</label>
+            <textarea
+              name="content"
+              id="content"
+              rows="12"
+              required
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body font-mono leading-relaxed"
+              placeholder="Escreva seu artigo aqui... Use # para Título, ## para Subtítulo, > para citações em destaque e **texto** para negrito."
+            ></textarea>
+          </div>
+
+          <!-- Destaque -->
+          <div class="flex items-center gap-3">
+            <input
+              type="checkbox"
+              name="is_featured"
+              id="is_featured"
+              value="true"
+              class="size-6 text-primary bg-background-light border-transparent rounded-lg focus:ring-primary focus:ring-offset-0"
+            />
+            <label for="is_featured" class="text-sm font-black text-secondary uppercase tracking-widest cursor-pointer select-none">Destacar na Home do Blog</label>
+          </div>
+
+        </div>
+
+        <!-- Botões -->
+        <div class="pt-6 border-t border-gray-100 flex items-center justify-end gap-4">
+          <a
+            href="/admin"
+            class="inline-flex h-14 items-center justify-center rounded-full bg-white border-2 border-secondary px-10 text-xs font-black uppercase tracking-widest text-secondary hover:bg-secondary hover:text-primary transition-all"
+          >
+            Cancelar
+          </a>
+          <button
+            type="submit"
+            class="inline-flex h-14 items-center justify-center rounded-full bg-primary px-10 text-xs font-black uppercase tracking-widest text-secondary shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all hover:scale-105 active:scale-95"
+          >
+            Publicar Artigo
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</Layout>
