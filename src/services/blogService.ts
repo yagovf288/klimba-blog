@@ -13,6 +13,19 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   }
 });
 
+const formatDate = (raw: string | undefined): string => {
+  if (!raw) return '';
+  try {
+    return new Date(raw).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return raw;
+  }
+};
+
 const transformPost = (record: any): BlogPost => ({
   id: record.id?.toString() || record.Id?.toString() || '',
   title: record.title,
@@ -21,7 +34,7 @@ const transformPost = (record: any): BlogPost => ({
   content: record.content,
   category: record.category as Category,
   authorId: record.author_id?.toString() || record.authorId?.toString(),
-  publishDate: record.publish_date || record.publishDate,
+  publishDate: formatDate(record.publish_date || record.publishDate),
   readTime: record.read_time || record.readTime,
   imageUrl: record.image_url || record.imageUrl,
   isFeatured: record.is_featured ?? record.isFeatured ?? false,

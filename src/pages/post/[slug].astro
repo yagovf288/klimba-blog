@@ -69,13 +69,16 @@ const renderContentParagraphs = (content: string) => {
 const paragraphs = renderContentParagraphs(post.content);
 const seoTitle = post.seoTitle || `${post.title} | ${blogConfig.companyName} Blog`;
 const seoDescription = post.seoDescription || post.excerpt;
+// post.publishDate já vem formatado em PT-BR pelo blogService.
+// Para as metatags Open Graph, o artigo:published_time precisa de ISO 8601.
+const articleDateISO = post.publishDate ? new Date(post.publishDate).toISOString() : undefined;
 ---
 
 <Layout
   title={seoTitle}
   description={seoDescription}
   image={post.imageUrl}
-  articleDate={post.publishDate}
+  articleDate={articleDateISO}
   authorName={author?.name}
 >
   <!-- JSON-LD Structured Data for Google Rich Results -->
