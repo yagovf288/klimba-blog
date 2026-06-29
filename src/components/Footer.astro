@@ -1,5 +1,6 @@
 ---
-// Footer.astro - Rodapé do Blog do Klimba
+// Footer.astro - Rodapé do Blog
+import { blogConfig } from '../blog.config';
 const currentYear = new Date().getFullYear();
 ---
 <footer
@@ -14,36 +15,27 @@ const currentYear = new Date().getFullYear();
         class="flex items-center gap-2 justify-center md:justify-start text-white"
       >
         <img
-          src="/assets/klimba.svg"
+          src={blogConfig.companyLogo}
           style="height: 40px; filter: brightness(0) invert(1);"
-          alt="Klimba Logo"
+          alt={blogConfig.companyLogoAlt}
         />
-        <span class="text-3xl font-black tracking-tight font-display">Klimba</span>
+        <span class="text-3xl font-black tracking-tight font-display">{blogConfig.companyName}</span>
       </div>
-      <p class="text-base max-w-xs leading-relaxed">
-        Gere Demanda Inteligente. Transforme tráfego em recorrência e aumente seu LTV.
+      <p class="text-base max-w-xs leading-relaxed font-body">
+        {blogConfig.companySlogan}
       </p>
     </div>
-    <div class="flex gap-16 text-sm text-left">
+    <div class="flex gap-16 text-sm text-left font-body">
       <div class="flex flex-col gap-4">
-        <span class="text-white font-bold mb-2 uppercase tracking-widest text-xs">Plataforma</span>
-        <a class="hover:text-primary transition-colors" href="https://klimba.com.br/solucoes">Soluções</a>
+        <span class="text-white font-bold mb-2 uppercase tracking-widest text-xs">Navegação</span>
         <a class="hover:text-primary transition-colors" href="/">Blog</a>
-      </div>
-      <div class="flex flex-col gap-4">
-        <span class="text-white font-bold mb-2 uppercase tracking-widest text-xs">Suporte</span>
-        <a
-          class="hover:text-primary transition-colors"
-          href="mailto:suporte@klimba.com.br"
-          >Fale Conosco</a
-        >
-        <a class="hover:text-primary transition-colors" href="https://linkedin.com/company/klimba" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        <a class="hover:text-primary transition-colors" href={blogConfig.cta.buttonUrl} target="_blank">{blogConfig.cta.buttonText}</a>
       </div>
     </div>
   </div>
   <div
-    class="max-w-7xl mx-auto px-4 md:px-10 mt-20 pt-8 border-t border-white/5 text-center md:text-left text-xs tracking-wider"
+    class="max-w-7xl mx-auto px-4 md:px-10 mt-20 pt-8 border-t border-white/5 text-center md:text-left text-xs tracking-wider font-body"
   >
-    &copy; <span>{currentYear}</span> Klimba. Todos os direitos reservados.
+    &copy; <span>{currentYear}</span> {blogConfig.companyName}. Todos os direitos reservados.
   </div>
 </footer>

@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { blogService } from '../services/blogService';
 import { Category } from '../types';
+import { blogConfig } from '../blog.config';
 
 // Ler parâmetros de busca e categorias da URL
 const searchParam = Astro.url.searchParams.get('search') || '';
@@ -9,19 +10,19 @@ const categoryParam = Astro.url.searchParams.get('category') || Category.TODOS;
 
 let posts = [];
 let pageInfo = null;
-let titleSEO = 'Klimba | Gere Demanda Inteligente - Blog';
-let descriptionSEO = 'Estratégias de retenção, CRM e marketing direto para o varejo físico. Transforme tráfego em recorrência.';
+let titleSEO = blogConfig.seo.titleDefault;
+let descriptionSEO = blogConfig.seo.descriptionDefault;
 
 try {
   if (searchParam) {
     posts = await blogService.searchPosts(searchParam);
-    titleSEO = `Resultados para "${searchParam}" | Klimba Blog`;
+    titleSEO = `Resultados para "${searchParam}" | ${blogConfig.companyName}`;
   } else if (categoryParam && categoryParam !== Category.TODOS) {
     const response = await blogService.getPostsByCategory(categoryParam as Category, 1);
     posts = response.list;
     pageInfo = response.pageInfo;
     const catFormatted = categoryParam.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-    titleSEO = `Categoria: ${catFormatted} | Klimba Blog`;
+    titleSEO = `Categoria: ${catFormatted} | ${blogConfig.companyName}`;
   } else {
     const response = await blogService.getAllPosts(1);
     posts = response.list;

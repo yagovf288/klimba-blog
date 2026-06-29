@@ -1,8 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { blogConfig } from '../blog.config';
 ---
 
-<Layout title="Página Não Encontrada | Klimba">
+<Layout title={`Página Não Encontrada | ${blogConfig.companyName}`}>
   <div class="min-h-[70vh] flex items-center justify-center bg-background-light py-16 px-4 relative overflow-hidden">
     
     <!-- Efeitos de Fundo (Blobs) -->

@@ -55,7 +55,7 @@ const PostPage: React.FC = () => {
             setAuthor(a || null);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setAiInsight('');
-            
+
             // Dynamic SEO Update for Post
             updateMetaTags({
               title: `${p.title} | Klimba Blog`,
@@ -135,7 +135,7 @@ const PostPage: React.FC = () => {
         {/* Profile / Meta */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-y border-gray-100 py-8 mb-12 gap-8">
           <div className="flex items-center gap-5">
-            <div 
+            <div
               className="size-16 rounded-3xl bg-gray-100 overflow-hidden ring-4 ring-white shadow-lg rotate-3"
               style={{ backgroundImage: `url('${author?.avatarUrl}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
             ></div>
@@ -154,9 +154,9 @@ const PostPage: React.FC = () => {
       {/* Featured Image */}
       <div className="max-w-[1100px] mx-auto px-4 mb-16">
         <div className="relative rounded-4xl overflow-hidden shadow-2xl border border-gray-100">
-          <img 
-            src={post.imageUrl} 
-            alt={post.title} 
+          <img
+            src={post.imageUrl}
+            alt={post.title}
             className="w-full h-auto object-cover max-h-[600px]"
           />
         </div>
@@ -201,9 +201,9 @@ const PostPage: React.FC = () => {
       {/* AI Insight Section */}
       <div className="w-full max-w-[900px] mx-auto px-6 mt-16 mb-20">
         <div className="bg-secondary rounded-4xl p-10 md:p-14 border border-white/5 shadow-2xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-8 opacity-5 text-primary scale-150 group-hover:rotate-12 transition-transform duration-700">
-              <span className="material-symbols-outlined text-9xl">psychology</span>
-           </div>
+          <div className="absolute top-0 right-0 p-8 opacity-5 text-primary scale-150 group-hover:rotate-12 transition-transform duration-700">
+            <span className="material-symbols-outlined text-9xl">psychology</span>
+          </div>
           <div className="flex flex-col md:flex-row md:items-center gap-6 mb-10 relative z-10">
             <div className="bg-primary size-14 rounded-3xl flex items-center justify-center text-secondary shadow-lg rotate-6">
               <span className="material-symbols-outlined text-3xl">auto_awesome</span>
@@ -213,7 +213,7 @@ const PostPage: React.FC = () => {
               <p className="text-slate-400 text-sm font-bold tracking-widest uppercase">Análise estratégica baseada em IA</p>
             </div>
           </div>
-          
+
           {aiInsight ? (
             <div className="text-white animate-in fade-in slide-in-from-bottom-4 relative z-10">
               <div className="whitespace-pre-line leading-relaxed text-lg bg-white/5 backdrop-blur-md p-8 md:p-10 rounded-4xl border border-white/10 shadow-inner font-body">
@@ -223,7 +223,7 @@ const PostPage: React.FC = () => {
           ) : (
             <div className="text-center py-8 relative z-10">
               <p className="text-slate-300 text-lg mb-10 italic max-w-xl mx-auto font-body">Gere insights instantâneos para este artigo usando nossa rede neural proprietária.</p>
-              <button 
+              <button
                 onClick={generateAiInsight}
                 disabled={loadingAi}
                 className="inline-flex items-center gap-4 px-10 py-5 bg-primary text-secondary tracking-widest text-xs uppercase rounded-full font-black hover:bg-primary-hover transition-all disabled:opacity-50 shadow-xl hover:shadow-primary/20 active:scale-95"
@@ -258,8 +258,8 @@ const PostPage: React.FC = () => {
             {relatedPosts.map(rp => (
               <article key={rp.id} className="bg-white rounded-4xl border border-gray-100 overflow-hidden flex flex-col hover:shadow-2xl transition-all duration-500 group">
                 <Link to={`/post/${rp.slug}`} className="block h-56 overflow-hidden relative">
-                  <img 
-                    src={rp.imageUrl} 
+                  <img
+                    src={rp.imageUrl}
                     alt={rp.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -292,7 +292,7 @@ const PostPage: React.FC = () => {
         <div className="relative overflow-hidden rounded-[3rem] bg-secondary p-10 md:p-16 shadow-2xl border border-white/5">
           <div className="absolute top-0 right-0 -mr-32 -mt-32 w-96 h-96 rounded-full bg-primary/20 blur-[120px]"></div>
           <div className="absolute bottom-0 left-0 -ml-32 -mb-32 w-96 h-96 rounded-full bg-primary/10 blur-[120px]"></div>
-          
+
           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="max-w-3xl text-center lg:text-left">
               <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-8">
@@ -305,14 +305,13 @@ const PostPage: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-col gap-6 w-full lg:w-auto shrink-0">
-              <button 
+              <button
                 onClick={() => window.location.href = 'https://klimba.com.br'}
                 className="flex items-center justify-center gap-3 bg-primary hover:bg-primary-hover text-secondary font-black py-5 px-10 rounded-full transition-all hover:-translate-y-1 shadow-2xl shadow-primary/20 active:scale-95 uppercase tracking-widest text-xs"
               >
                 Ativar Minha Loja
                 <span className="material-symbols-outlined">bolt</span>
               </button>
-              <p className="text-white/30 text-[10px] text-center uppercase tracking-[0.3em] font-black">Zero friction loyalty platform</p>
             </div>
           </div>
         </div>

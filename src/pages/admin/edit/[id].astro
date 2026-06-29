@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
 import { Category } from '../../../types';
+import { blogConfig } from '../../../blog.config';
 import { createClient } from '@supabase/supabase-js';
 import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from 'astro:env/server';
 
@@ -120,7 +121,7 @@ if (Astro.request.method === 'POST') {
 }
 ---
 
-<Layout title={`Editar Artigo | Klimba Admin`}>
+<Layout title={`Editar Artigo | ${blogConfig.companyName} Admin`}>
   <div class="bg-background-light min-h-screen py-12">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       

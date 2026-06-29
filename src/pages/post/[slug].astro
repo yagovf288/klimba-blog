@@ -1,59 +1,61 @@
----
-import Layout from '../../layouts/Layout.astro';
-import { blogService } from '../../services/blogService';
-import AiInsight from '../../components/AiInsight';
+import Layout from "../../layouts/Layout.astro";
+import { blogService } from "../../services/blogService";
+import AiInsight from "../../components/AiInsight";
+import { blogConfig } from "../../blog.config";
 
 const { slug } = Astro.params;
 
 if (!slug) {
-  return Astro.redirect('/404');
+  return Astro.redirect("/404");
 }
 
 const post = await blogService.getPostBySlug(slug);
 
 if (!post) {
-  return new Response('Página não encontrada', { status: 404 });
+  return new Response("Página não encontrada", { status: 404 });
 }
 
 const author = await blogService.getAuthorById(post.authorId);
 
 // Buscar todos os posts da mesma categoria para artigos relacionados
-const { list: allCategoryPosts } = await blogService.getPostsByCategory(post.category);
+const { list: allCategoryPosts } = await blogService.getPostsByCategory(
+  post.category,
+);
 const relatedPosts = allCategoryPosts
-  .filter(p => p.id !== post.id)
+  .filter((p) => p.id !== post.id)
   .slice(0, 3);
 
 // Função auxiliar para analisar parágrafos e destacar negritos (**texto**)
 const renderContentParagraphs = (content: string) => {
   return content
-    .replace(/\\n/g, '\n')
-    .split('\n')
-    .filter(p => p.trim() !== '')
+    .replace(/\\n/g, "\n")
+    .split("\n")
+    .filter((p) => p.trim() !== "")
     .map((paragraph) => {
       // Retorna objeto com o tipo e partes do texto processados
-      let type = 'p';
+      let type = "p";
       let text = paragraph;
 
-      if (paragraph.startsWith('# ')) {
-        type = 'h1';
-        text = paragraph.replace('# ', '');
-      } else if (paragraph.startsWith('## ')) {
-        type = 'h2';
-        text = paragraph.replace('## ', '');
-      } else if (paragraph.startsWith('### ')) {
-        type = 'h3';
-        text = paragraph.replace('### ', '');
-      } else if (paragraph.startsWith('> ')) {
-        type = 'blockquote';
-        text = paragraph.replace('> ', '').replace(/"/g, '');
-      } else if (paragraph.startsWith('- ') || paragraph.match(/^\d+\. /)) {
-        type = 'li';
-        text = paragraph.replace(/^(- |\d+\. )/, '');
+      if (paragraph.startsWith("# ")) {
+        type = "h1";
+        text = paragraph.replace("# ", "");
+      } else if (paragraph.startsWith("## ")) {
+        type = "h2";
+        text = paragraph.replace("## ", "");
+      } else if (paragraph.startsWith("### ")) {
+        type = "h3";
+        text = paragraph.replace("### ", "");
+      } else if (paragraph.startsWith("> ")) {
+        type = "blockquote";
+        text = paragraph.replace("> ", "").replace(/"/g, "");
+      } else if (paragraph.startsWith("- ") || paragraph.match(/^\d+\. /)) {
+        type = "li";
+        text = paragraph.replace(/^(- |\d+\. )/, "");
       }
 
       // Divide o texto para detectar **negritos**
       const parts = text.split(/(\*\*.*?\*\*)/g).map((part) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
+        if (part.startsWith("**") && part.endsWith("**")) {
           return { isBold: true, value: part.slice(2, -2) };
         }
         return { isBold: false, value: part };
@@ -66,84 +68,109 @@ const renderContentParagraphs = (content: string) => {
 const paragraphs = renderContentParagraphs(post.content);
 ---
 
-<Layout 
-  title={`${post.title} | Klimba Blog`} 
-  description={post.excerpt} 
+<Layout
+  title={`${post.title} | Klimba Blog`}
+  description={post.excerpt}
   image={post.imageUrl}
   articleDate={post.publishDate}
   authorName={author?.name}
 >
   <!-- JSON-LD Structured Data for Google Rich Results -->
-  <script type="application/ld+json" is:inline set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": Astro.url.href
-    },
-    "headline": post.title,
-    "description": post.excerpt,
-    "image": post.imageUrl,
-    "author": {
-      "@type": "Person",
-      "name": author?.name || "Equipe Klimba"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Klimba",
-      "logo": {
-        "@type": "ImageObject",
-        "url": new URL("/assets/klimba.svg", Astro.url.origin).href
-      }
-    },
-    "datePublished": post.publishDate
-  })} />
+  <script
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": Astro.url.href,
+      },
+      headline: post.title,
+      description: post.excerpt,
+      image: post.imageUrl,
+      author: {
+        "@type": "Person",
+        name: author?.name || "Equipe Klimba",
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "Klimba",
+        logo: {
+          "@type": "ImageObject",
+          url: new URL("/assets/klimba.svg", Astro.url.origin).href,
+        },
+      },
+      datePublished: post.publishDate,
+    })}
+  />
   <div class="bg-background-light py-12">
     <!-- Breadcrumbs -->
     <div class="w-full max-w-[900px] mx-auto px-6 mb-6">
-      <nav class="flex text-[10px] text-text-muted font-black uppercase tracking-[0.2em] gap-3 items-center">
+      <nav
+        class="flex text-[10px] text-text-muted font-black uppercase tracking-[0.2em] gap-3 items-center"
+      >
         <a href="/" class="hover:text-primary transition-colors">Home</a>
         <span class="material-symbols-outlined text-[10px]">chevron_right</span>
         <a href="/" class="hover:text-primary transition-colors">Blog</a>
         <span class="material-symbols-outlined text-[10px]">chevron_right</span>
-        <span class="text-secondary">{post.category.replace(/_/g, ' ')}</span>
+        <span class="text-secondary">{post.category.replace(/_/g, " ")}</span>
       </nav>
     </div>
 
     <!-- Article Header -->
     <div class="w-full max-w-[900px] mx-auto px-6">
-      <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-secondary leading-[1.1] tracking-tight mb-8 font-display">
+      <h1
+        class="text-4xl md:text-5xl lg:text-6xl font-black text-secondary leading-[1.1] tracking-tight mb-8 font-display"
+      >
         {post.title}
       </h1>
-      <p class="text-xl md:text-2xl text-text-muted font-medium leading-relaxed mb-12 font-body max-w-3xl">
+      <p
+        class="text-xl md:text-2xl text-text-muted font-medium leading-relaxed mb-12 font-body max-w-3xl"
+      >
         {post.excerpt}
       </p>
 
       <!-- Profile / Meta -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between border-y border-gray-100 py-8 mb-12 gap-8">
+      <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between border-y border-gray-100 py-8 mb-12 gap-8"
+      >
         <div class="flex items-center gap-5">
-          {author?.avatarUrl ? (
-            <div 
-              class="size-16 rounded-3xl bg-gray-100 overflow-hidden ring-4 ring-white shadow-lg rotate-3 bg-cover bg-center"
-              style={`background-image: url('${author.avatarUrl}')`}
-            ></div>
-          ) : (
-            <div class="size-16 rounded-3xl bg-slate-200 overflow-hidden ring-4 ring-white shadow-lg rotate-3 flex items-center justify-center font-display font-bold text-secondary">
-              K
-            </div>
-          )}
+          {
+            author?.avatarUrl ? (
+              <div
+                class="size-16 rounded-3xl bg-gray-100 overflow-hidden ring-4 ring-white shadow-lg rotate-3 bg-cover bg-center"
+                style={`background-image: url('${author.avatarUrl}')`}
+              />
+            ) : (
+              <div class="size-16 rounded-3xl bg-slate-200 overflow-hidden ring-4 ring-white shadow-lg rotate-3 flex items-center justify-center font-display font-bold text-secondary">
+                K
+              </div>
+            )
+          }
           <div class="flex flex-col">
-            <span class="text-base font-black text-secondary font-display">Por {author?.name || 'Equipe Klimba'}</span>
-            <span class="text-xs text-text-muted font-bold tracking-widest uppercase">{author?.role || 'Growth Strategist'}</span>
+            <span class="text-base font-black text-secondary font-display"
+              >Por {author?.name || "Equipe Klimba"}</span
+            >
+            <span
+              class="text-xs text-text-muted font-bold tracking-widest uppercase"
+              >{author?.role || "Growth Strategist"}</span
+            >
           </div>
         </div>
-        <div class="flex items-center gap-8 text-[11px] text-text-muted font-black tracking-widest uppercase">
+        <div
+          class="flex items-center gap-8 text-[11px] text-text-muted font-black tracking-widest uppercase"
+        >
           <span class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-lg text-primary">calendar_today</span> 
+            <span class="material-symbols-outlined text-lg text-primary"
+              >calendar_today</span
+            >
             {post.publishDate}
           </span>
           <span class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-lg text-primary">schedule</span> 
+            <span class="material-symbols-outlined text-lg text-primary"
+              >schedule</span
+            >
             {post.readTime}
           </span>
         </div>
@@ -152,134 +179,233 @@ const paragraphs = renderContentParagraphs(post.content);
 
     <!-- Featured Image -->
     <div class="max-w-[1100px] mx-auto px-4 mb-16">
-      <div class="relative rounded-4xl overflow-hidden shadow-2xl border border-gray-100">
-        <img 
-          src={post.imageUrl} 
-          alt={post.title} 
+      <div
+        class="relative rounded-4xl overflow-hidden shadow-2xl border border-gray-100"
+      >
+        <img
+          src={post.imageUrl}
+          alt={post.title}
           class="w-full h-auto object-cover max-h-[600px]"
         />
       </div>
     </div>
 
     <!-- Article Body -->
-    <article class="w-full max-w-[900px] mx-auto px-6 prose prose-lg prose-teal text-secondary font-body">
-      {paragraphs.map((p) => {
-        if (p.type === 'h1') {
+    <article
+      class="w-full max-w-[900px] mx-auto px-6 prose prose-lg prose-teal text-secondary font-body"
+    >
+      {
+        paragraphs.map((p) => {
+          if (p.type === "h1") {
+            return (
+              <h1 class="text-4xl font-black text-secondary mt-16 mb-8 tracking-tight font-display leading-tight">
+                {p.parts.map((part) =>
+                  part.isBold ? (
+                    <strong class="font-black text-secondary">
+                      {part.value}
+                    </strong>
+                  ) : (
+                    part.value
+                  ),
+                )}
+              </h1>
+            );
+          }
+          if (p.type === "h2") {
+            return (
+              <h2 class="text-3xl font-black text-secondary mt-16 mb-6 tracking-tight font-display">
+                {p.parts.map((part) =>
+                  part.isBold ? (
+                    <strong class="font-black text-secondary">
+                      {part.value}
+                    </strong>
+                  ) : (
+                    part.value
+                  ),
+                )}
+              </h2>
+            );
+          }
+          if (p.type === "h3") {
+            return (
+              <h3 class="text-2xl font-black text-secondary mt-12 mb-4 tracking-tight font-display">
+                {p.parts.map((part) =>
+                  part.isBold ? (
+                    <strong class="font-black text-secondary">
+                      {part.value}
+                    </strong>
+                  ) : (
+                    part.value
+                  ),
+                )}
+              </h3>
+            );
+          }
+          if (p.type === "blockquote") {
+            return (
+              <blockquote class="border-l-8 border-primary pl-8 py-4 my-12 italic text-2xl text-secondary font-black bg-primary/5 pr-8 rounded-4xl">
+                {p.parts.map((part) =>
+                  part.isBold ? (
+                    <strong class="font-black text-secondary">
+                      {part.value}
+                    </strong>
+                  ) : (
+                    part.value
+                  ),
+                )}
+              </blockquote>
+            );
+          }
+          if (p.type === "li") {
+            return (
+              <p class="mb-4 leading-[1.8] text-xl opacity-90 pl-6 relative before:absolute before:left-0 before:top-3 before:size-2 before:bg-primary before:rounded-full">
+                {p.parts.map((part) =>
+                  part.isBold ? (
+                    <strong class="font-black text-secondary">
+                      {part.value}
+                    </strong>
+                  ) : (
+                    part.value
+                  ),
+                )}
+              </p>
+            );
+          }
           return (
-            <h1 class="text-4xl font-black text-secondary mt-16 mb-8 tracking-tight font-display leading-tight">
-              {p.parts.map(part => part.isBold ? <strong class="font-black text-secondary">{part.value}</strong> : part.value)}
-            </h1>
-          );
-        }
-        if (p.type === 'h2') {
-          return (
-            <h2 class="text-3xl font-black text-secondary mt-16 mb-6 tracking-tight font-display">
-              {p.parts.map(part => part.isBold ? <strong class="font-black text-secondary">{part.value}</strong> : part.value)}
-            </h2>
-          );
-        }
-        if (p.type === 'h3') {
-          return (
-            <h3 class="text-2xl font-black text-secondary mt-12 mb-4 tracking-tight font-display">
-              {p.parts.map(part => part.isBold ? <strong class="font-black text-secondary">{part.value}</strong> : part.value)}
-            </h3>
-          );
-        }
-        if (p.type === 'blockquote') {
-          return (
-            <blockquote class="border-l-8 border-primary pl-8 py-4 my-12 italic text-2xl text-secondary font-black bg-primary/5 pr-8 rounded-4xl">
-              {p.parts.map(part => part.isBold ? <strong class="font-black text-secondary">{part.value}</strong> : part.value)}
-            </blockquote>
-          );
-        }
-        if (p.type === 'li') {
-          return (
-            <p class="mb-4 leading-[1.8] text-xl opacity-90 pl-6 relative before:absolute before:left-0 before:top-3 before:size-2 before:bg-primary before:rounded-full">
-              {p.parts.map(part => part.isBold ? <strong class="font-black text-secondary">{part.value}</strong> : part.value)}
+            <p class="mb-10 leading-[1.8] text-xl opacity-90">
+              {p.parts.map((part) =>
+                part.isBold ? (
+                  <strong class="font-black text-secondary">
+                    {part.value}
+                  </strong>
+                ) : (
+                  part.value
+                ),
+              )}
             </p>
           );
-        }
-        return (
-          <p class="mb-10 leading-[1.8] text-xl opacity-90">
-            {p.parts.map(part => part.isBold ? <strong class="font-black text-secondary">{part.value}</strong> : part.value)}
-          </p>
-        );
-      })}
+        })
+      }
     </article>
 
     <!-- AI Insight Section (Hydrated Client-Side on visibility) -->
     <div class="w-full max-w-[900px] mx-auto px-6 mt-16 mb-20">
-      <AiInsight client:visible postTitle={post.title} postContent={post.content} postSlug={post.slug} />
+      <AiInsight
+        client:visible
+        postTitle={post.title}
+        postContent={post.content}
+        postSlug={post.slug}
+      />
     </div>
 
     <!-- Related Posts Section -->
-    {relatedPosts.length > 0 && (
-      <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 mb-16 border-t border-gray-100 pt-20">
-        <div class="flex items-center justify-between mb-12">
-          <h2 class="text-4xl font-black text-secondary tracking-tight font-display">Aprofunde seu conhecimento</h2>
-          <a href="/" class="text-secondary font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all">
-            Ver biblioteca <span class="material-symbols-outlined text-primary">arrow_forward</span>
-          </a>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {relatedPosts.map(rp => (
-            <article class="bg-white rounded-4xl border border-gray-100 overflow-hidden flex flex-col hover:shadow-2xl transition-all duration-500 group">
-              <a href={`/post/${rp.slug}`} class="block h-56 overflow-hidden relative">
-                <img 
-                  src={rp.imageUrl} 
-                  alt={rp.title}
-                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div class="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full text-[10px] font-black text-secondary shadow-sm uppercase tracking-widest">
-                  {rp.category.replace(/_/g, ' ')}
+    {
+      relatedPosts.length > 0 && (
+        <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 mb-16 border-t border-gray-100 pt-20">
+          <div class="flex items-center justify-between mb-12">
+            <h2 class="text-4xl font-black text-secondary tracking-tight font-display">
+              Aprofunde seu conhecimento
+            </h2>
+            <a
+              href="/"
+              class="text-secondary font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all"
+            >
+              Ver biblioteca{" "}
+              <span class="material-symbols-outlined text-primary">
+                arrow_forward
+              </span>
+            </a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {relatedPosts.map((rp) => (
+              <article class="bg-white rounded-4xl border border-gray-100 overflow-hidden flex flex-col hover:shadow-2xl transition-all duration-500 group">
+                <a
+                  href={`/post/${rp.slug}`}
+                  class="block h-56 overflow-hidden relative"
+                >
+                  <img
+                    src={rp.imageUrl}
+                    alt={rp.title}
+                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div class="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full text-[10px] font-black text-secondary shadow-sm uppercase tracking-widest">
+                    {rp.category.replace(/_/g, " ")}
+                  </div>
+                </a>
+                <div class="p-8 flex flex-col flex-1">
+                  <h3 class="text-xl font-black text-secondary mb-4 leading-tight group-hover:text-primary transition-colors font-display">
+                    <a href={`/post/${rp.slug}`}>{rp.title}</a>
+                  </h3>
+                  <p class="text-text-muted text-sm line-clamp-3 mb-8 flex-1 leading-relaxed font-body">
+                    {rp.excerpt}
+                  </p>
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-text-muted font-black uppercase tracking-widest">
+                      {rp.readTime}
+                    </span>
+                    <a
+                      href={`/post/${rp.slug}`}
+                      class="text-secondary font-black text-[10px] uppercase tracking-widest inline-flex items-center gap-2 group-hover:gap-4 transition-all"
+                    >
+                      Ler Artigo{" "}
+                      <span class="material-symbols-outlined text-sm text-primary">
+                        arrow_forward
+                      </span>
+                    </a>
+                  </div>
                 </div>
-              </a>
-              <div class="p-8 flex flex-col flex-1">
-                <h3 class="text-xl font-black text-secondary mb-4 leading-tight group-hover:text-primary transition-colors font-display">
-                  <a href={`/post/${rp.slug}`}>{rp.title}</a>
-                </h3>
-                <p class="text-text-muted text-sm line-clamp-3 mb-8 flex-1 leading-relaxed font-body">
-                  {rp.excerpt}
-                </p>
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] text-text-muted font-black uppercase tracking-widest">{rp.readTime}</span>
-                  <a href={`/post/${rp.slug}`} class="text-secondary font-black text-[10px] uppercase tracking-widest inline-flex items-center gap-2 group-hover:gap-4 transition-all">
-                    Ler Artigo <span class="material-symbols-outlined text-sm text-primary">arrow_forward</span>
-                  </a>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )
+    }
 
     <!-- Strategic CTA -->
     <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
-      <div class="relative overflow-hidden rounded-[3rem] bg-secondary p-10 md:p-16 shadow-2xl border border-white/5">
-        <div class="absolute top-0 right-0 -mr-32 -mt-32 w-96 h-96 rounded-full bg-primary/20 blur-[120px]"></div>
-        <div class="absolute bottom-0 left-0 -ml-32 -mb-32 w-96 h-96 rounded-full bg-primary/10 blur-[120px]"></div>
-        
-        <div class="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
+      <div
+        class="relative overflow-hidden rounded-[3rem] bg-secondary p-10 md:p-16 shadow-2xl border border-white/5"
+      >
+        <div
+          class="absolute top-0 right-0 -mr-32 -mt-32 w-96 h-96 rounded-full bg-primary/20 blur-[120px]"
+        >
+        </div>
+        <div
+          class="absolute bottom-0 left-0 -ml-32 -mb-32 w-96 h-96 rounded-full bg-primary/10 blur-[120px]"
+        >
+        </div>
+
+        <div
+          class="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12"
+        >
           <div class="max-w-3xl text-center lg:text-left">
-            <div class="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-8">
-              <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-glow"></span>
-              Gere Demanda Inteligente
+            <div
+              class="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-8"
+            >
+              <span
+                class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-glow"
+              ></span>
+              {blogConfig.cta.badge}
             </div>
-            <h3 class="text-4xl md:text-5xl font-black text-white mb-8 tracking-tight leading-[1.1] font-display">Pronto para transformar seu varejo em uma máquina de recorrência?</h3>
-            <p class="text-slate-400 text-xl leading-relaxed font-medium font-body mb-0">
-              O CRM WhatsApp-first que conecta sua loja ao bolso do cliente, sem atrito, sem downloads.
+            <h3
+              class="text-4xl md:text-5xl font-black text-white mb-8 tracking-tight leading-[1.1] font-display"
+            >
+              {blogConfig.cta.title}
+            </h3>
+            <p
+              class="text-slate-400 text-xl leading-relaxed font-medium font-body mb-0"
+            >
+              {blogConfig.cta.description}
             </p>
           </div>
-          <div class="flex flex-col gap-6 w-full lg:w-auto shrink-0">
-            <button 
-              onclick="window.location.href = 'https://klimba.com.br'"
+          <div class="flex flex-col gap-6 w-full lg:w-auto shrink-0 font-body">
+            <button
+              onclick={`window.open('${blogConfig.cta.buttonUrl}', '_blank')`}
               class="flex items-center justify-center gap-3 bg-primary hover:bg-primary-hover text-secondary font-black py-5 px-10 rounded-full transition-all hover:-translate-y-1 shadow-2xl shadow-primary/20 active:scale-95 uppercase tracking-widest text-xs"
             >
-              Ativar Minha Loja
+              {blogConfig.cta.buttonText}
               <span class="material-symbols-outlined">bolt</span>
             </button>
-            <p class="text-white/30 text-[10px] text-center uppercase tracking-[0.3em] font-black">Zero friction loyalty platform</p>
           </div>
         </div>
       </div>

@@ -8,6 +8,43 @@ interface AiInsightProps {
 
 type ChatState = 'welcome' | 'lead_capture' | 'loading' | 'insight';
 
+// Função utilitária para converter Markdown simples em HTML com classes Tailwind
+const parseMarkdownToHtml = (markdown: string): string => {
+  let html = markdown
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Títulos: ### Subtítulo ou ## Título
+  html = html.replace(/^### (.*$)/gim, '<h5 class="text-lg font-black text-primary mt-6 mb-3 font-display">$1</h5>');
+  html = html.replace(/^## (.*$)/gim, '<h4 class="text-xl font-black text-primary mt-6 mb-3 font-display">$1</h4>');
+  html = html.replace(/^# (.*$)/gim, '<h3 class="text-2xl font-black text-primary mt-6 mb-3 font-display">$1</h3>');
+
+  // Negrito: **texto**
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-primary">$1</strong>');
+
+  // Itálico: *texto*
+  html = html.replace(/\*(.*?)\*/g, '<em class="italic text-slate-300">$1</em>');
+
+  // Listas não ordenadas: - item ou * item
+  html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<li class="ml-6 list-disc text-slate-300 mb-2 leading-relaxed font-body">$1</li>');
+
+  // Parágrafos e espaçamento
+  const sections = html.split('\n');
+  const processed = sections.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<li')) {
+      return line;
+    }
+    
+    return `<p class="mb-4 leading-relaxed text-slate-300 font-body">${line}</p>`;
+  });
+
+  return processed.filter(p => p).join('\n');
+};
+
 const AiInsight: React.FC<AiInsightProps> = ({ postTitle, postContent, postSlug }) => {
   const [chatState, setChatState] = useState<ChatState>('welcome');
   const [feedback, setFeedback] = useState<string>('');
@@ -233,16 +270,17 @@ const AiInsight: React.FC<AiInsightProps> = ({ postTitle, postContent, postSlug 
               <div>
                 <h4 className="text-lg font-black text-primary font-display">Acesso Liberado!</h4>
                 <p className="text-slate-300 text-sm mt-1 font-body">
-                  Parabéns, **{name}**! Seus dados foram salvos. Abaixo está o insight estratégico do Klimba Intelligence preparado exclusivamente para você.
+                  Parabéns, <span className="font-black text-primary">{name}</span>! Seus dados foram salvos. Abaixo está o insight estratégico preparado exclusivamente para você.
                 </p>
               </div>
             </div>
 
             {/* Insight Gerado pela IA */}
             <div className="text-white relative">
-              <div className="whitespace-pre-line leading-relaxed text-lg bg-white/5 backdrop-blur-md p-8 md:p-10 rounded-4xl border border-white/10 shadow-inner font-body">
-                {insight}
-              </div>
+              <div 
+                className="leading-relaxed text-lg bg-white/5 backdrop-blur-md p-8 md:p-10 rounded-4xl border border-white/10 shadow-inner font-body markdown-content"
+                dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(insight) }}
+              />
             </div>
           </div>
         )}
