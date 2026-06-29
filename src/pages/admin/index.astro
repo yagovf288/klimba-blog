@@ -11,9 +11,7 @@ const supabaseBlog = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, {
   db: { schema: 'blog' }
 });
 
-const supabaseAnalytics = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, {
-  db: { schema: 'analytics' }
-});
+const supabaseAnalytics = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY);
 
 // Tratar ação de exclusão (Delete)
 if (Astro.request.method === 'POST') {
