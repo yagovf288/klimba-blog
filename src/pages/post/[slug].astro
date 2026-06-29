@@ -188,7 +188,7 @@ const seoDescription = post.seoDescription || post.excerpt;
         <img
           src={post.imageUrl}
           alt={post.title}
-          class="w-full h-auto object-cover max-h-[600px]"
+          class="w-full aspect-[3/2] object-cover"
         />
       </div>
     </div>
@@ -324,7 +324,7 @@ const seoDescription = post.seoDescription || post.excerpt;
               <article class="bg-white rounded-4xl border border-gray-100 overflow-hidden flex flex-col hover:shadow-2xl transition-all duration-500 group">
                 <a
                   href={`/post/${rp.slug}`}
-                  class="block h-56 overflow-hidden relative"
+                  class="block aspect-[3/2] overflow-hidden relative"
                 >
                   <img
                     src={rp.imageUrl}
