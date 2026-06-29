@@ -43,11 +43,13 @@ if (Astro.request.method === 'POST') {
     // Upload de Imagem para o Supabase Storage (se houver arquivo)
     const imageFile = formData.get('image_file') as File;
     if (imageFile && imageFile.size > 0) {
-      const fileName = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const fileExt = imageFile.name.split('.').pop() || 'png';
+      const fileName = `${slug}.${fileExt}`;
+      const filePath = `images/${fileName}`;
       
       const { data: uploadData, error: uploadError } = await supabaseBlog.storage
-        .from('images')
-        .upload(fileName, imageFile, {
+        .from('blog')
+        .upload(filePath, imageFile, {
           contentType: imageFile.type,
           upsert: true
         });
@@ -57,42 +59,44 @@ if (Astro.request.method === 'POST') {
         errorMessage = 'Erro ao fazer upload da imagem: ' + uploadError.message;
       } else {
         const { data: { publicUrl } } = supabaseBlog.storage
-          .from('images')
-          .getPublicUrl(fileName);
+          .from('blog')
+          .getPublicUrl(filePath);
         imageUrl = publicUrl;
       }
     }
 
-    if (!errorMessage) {
-      if (!title || !slug || !content || !authorId) {
-        errorMessage = 'Por favor, preencha todos os campos obrigatórios (Título, Slug, Autor e Conteúdo).';
-      } else {
-        // Inserir na tabela posts com suporte híbrido a UUID e inteiros
-        const cleanAuthorId = isNaN(Number(authorId)) ? authorId : parseInt(authorId);
-
-        const { error } = await supabaseBlog.from('posts').insert({
-          title,
-          slug,
-          excerpt,
-          category,
-          author_id: cleanAuthorId,
-          read_time: readTime,
-          image_url: imageUrl,
-          content,
-          is_featured: isFeatured,
-          publish_date: publishDate
-        });
-
-        if (error) {
-          errorMessage = 'Erro ao salvar no banco de dados: ' + error.message;
-        } else {
-          return Astro.redirect('/admin');
-        }
-      }
+    if (errorMessage) {
+      return new Response(JSON.stringify({ error: errorMessage }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
-  } catch (err) {
+
+    if (!title || !slug || !content || !authorId) {
+      return new Response(JSON.stringify({ error: 'Por favor, preencha todos os campos obrigatórios (Título, Slug, Autor e Conteúdo).' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // Inserir na tabela posts com suporte híbrido a UUID e inteiros
+    const cleanAuthorId = isNaN(Number(authorId)) ? authorId : parseInt(authorId);
+
+    const { error } = await supabaseBlog.from('posts').insert({
+      title,
+      slug,
+      excerpt,
+      category,
+      author_id: cleanAuthorId,
+      read_time: readTime,
+      image_url: imageUrl,
+      content,
+      is_featured: isFeatured,
+      publish_date: publishDate
+    });
+
+    if (error) {
+      return new Response(JSON.stringify({ error: 'Erro ao salvar no banco de dados: ' + error.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    return new Response(JSON.stringify({ success: true, redirect: '/admin' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  } catch (err: any) {
     console.error("Erro ao criar artigo:", err);
-    errorMessage = 'Erro ao processar criação de artigo.';
+    return new Response(JSON.stringify({ error: 'Erro interno ao processar criação: ' + err.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
 ---
@@ -116,12 +120,10 @@ if (Astro.request.method === 'POST') {
       </div>
 
       <!-- Erros -->
-      {errorMessage && (
-        <div class="mb-8 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-3xl text-sm font-semibold flex items-center gap-3">
-          <span class="material-symbols-outlined text-lg">error</span>
-          {errorMessage}
-        </div>
-      )}
+      <div id="error-container" class="hidden mb-8 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-3xl text-sm font-semibold flex items-center gap-3">
+        <span class="material-symbols-outlined text-lg">error</span>
+        <span id="error-text"></span>
+      </div>
 
       <!-- Formulário -->
       <form method="POST" enctype="multipart/form-data" class="bg-white p-10 rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 space-y-8">
@@ -280,3 +282,102 @@ if (Astro.request.method === 'POST') {
     </div>
   </div>
 </Layout>
+
+<script>
+  // Função para converter arquivos de imagem para WebP em tempo de execução
+  function convertToWebP(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Não foi possível obter contexto de Canvas 2D'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Falha ao exportar Blob WebP'));
+          }, 'image/webp', 0.85); // 85% de qualidade
+        };
+        img.onerror = () => reject(new Error('Erro ao carregar imagem em memória'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const form = document.querySelector('form');
+  const errorContainer = document.getElementById('error-container');
+  const errorText = document.getElementById('error-text');
+
+  if (form && errorContainer && errorText) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorContainer.classList.add('hidden');
+      errorText.textContent = '';
+
+      const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const originalText = submitBtn ? submitBtn.innerHTML : 'Publicar Artigo';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="animate-spin material-symbols-outlined text-sm mr-2 align-middle">sync</span> Comprimindo e Salvando...';
+      }
+
+      try {
+        const formData = new FormData(form);
+        const slugInput = document.getElementById('slug') as HTMLInputElement;
+        const slug = slugInput ? slugInput.value.trim() : 'post';
+
+        // Capturar o input de imagem
+        const fileInput = document.getElementById('image_file') as HTMLInputElement;
+        const file = fileInput?.files?.[0];
+
+        if (file) {
+          try {
+            // Converter e substituir a imagem no FormData com a extensão .webp
+            const webpBlob = await convertToWebP(file);
+            formData.set('image_file', webpBlob, `${slug}.webp`);
+          } catch (webpError: any) {
+            console.warn('Erro ao converter para WebP, enviando original:', webpError);
+          }
+        }
+
+        const response = await fetch(window.location.href, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok || result.error) {
+          errorText.textContent = result.error || 'Erro desconhecido ao publicar artigo.';
+          errorContainer.classList.remove('hidden');
+          errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        } else if (result.success && result.redirect) {
+          window.location.href = result.redirect;
+        }
+      } catch (err) {
+        console.error(err);
+        errorText.textContent = 'Falha de comunicação com o servidor.';
+        errorContainer.classList.remove('hidden');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      }
+    });
+  }
+</script>

@@ -58,11 +58,13 @@ if (Astro.request.method === 'POST') {
     // Upload de Imagem para o Supabase Storage (se houver novo arquivo)
     const imageFile = formData.get('image_file') as File;
     if (imageFile && imageFile.size > 0) {
-      const fileName = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const fileExt = imageFile.name.split('.').pop() || 'png';
+      const fileName = `${slug}.${fileExt}`;
+      const filePath = `images/${fileName}`;
       
       const { data: uploadData, error: uploadError } = await supabaseBlog.storage
-        .from('images')
-        .upload(fileName, imageFile, {
+        .from('blog')
+        .upload(filePath, imageFile, {
           contentType: imageFile.type,
           upsert: true
         });
@@ -72,8 +74,8 @@ if (Astro.request.method === 'POST') {
         errorMessage = 'Erro ao fazer upload da imagem: ' + uploadError.message;
       } else {
         const { data: { publicUrl } } = supabaseBlog.storage
-          .from('images')
-          .getPublicUrl(fileName);
+          .from('blog')
+          .getPublicUrl(filePath);
         imageUrl = publicUrl;
       }
     }
@@ -303,6 +305,37 @@ if (Astro.request.method === 'POST') {
 </Layout>
 
 <script>
+  // Função para converter arquivos de imagem para WebP em tempo de execução
+  function convertToWebP(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Não foi possível obter contexto de Canvas 2D'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Falha ao exportar Blob WebP'));
+          }, 'image/webp', 0.85); // 85% de qualidade
+        };
+        img.onerror = () => reject(new Error('Erro ao carregar imagem em memória'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   const form = document.querySelector('form');
   const errorContainer = document.getElementById('error-container');
   const errorText = document.getElementById('error-text');
@@ -317,11 +350,28 @@ if (Astro.request.method === 'POST') {
       const originalText = submitBtn ? submitBtn.innerHTML : 'Salvar Alterações';
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="animate-spin material-symbols-outlined text-sm mr-2 align-middle">sync</span> Salvando...';
+        submitBtn.innerHTML = '<span class="animate-spin material-symbols-outlined text-sm mr-2 align-middle">sync</span> Comprimindo e Salvando...';
       }
 
       try {
         const formData = new FormData(form);
+        const slugInput = document.getElementById('slug') as HTMLInputElement;
+        const slug = slugInput ? slugInput.value.trim() : 'post';
+
+        // Capturar o input de imagem
+        const fileInput = document.getElementById('image_file') as HTMLInputElement;
+        const file = fileInput?.files?.[0];
+
+        if (file) {
+          try {
+            // Converter e substituir a imagem no FormData com a extensão .webp
+            const webpBlob = await convertToWebP(file);
+            formData.set('image_file', webpBlob, `${slug}.webp`);
+          } catch (webpError: any) {
+            console.warn('Erro ao converter para WebP, enviando original:', webpError);
+          }
+        }
+
         const response = await fetch(window.location.href, {
           method: 'POST',
           body: formData
