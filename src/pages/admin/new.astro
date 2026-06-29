@@ -69,13 +69,15 @@ if (Astro.request.method === 'POST') {
       if (!title || !slug || !content || !authorId) {
         errorMessage = 'Por favor, preencha todos os campos obrigatórios (Título, Slug, Autor e Conteúdo).';
       } else {
-        // Inserir na tabela posts
+        // Inserir na tabela posts com suporte híbrido a UUID e inteiros
+        const cleanAuthorId = isNaN(Number(authorId)) ? authorId : parseInt(authorId);
+
         const { error } = await supabaseBlog.from('posts').insert({
           title,
           slug,
           excerpt,
           category,
-          author_id: parseInt(authorId),
+          author_id: cleanAuthorId,
           read_time: readTime,
           image_url: imageUrl,
           content,

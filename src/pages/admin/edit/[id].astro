@@ -29,7 +29,8 @@ try {
 // 2. Carregar o artigo atual
 let post = null;
 try {
-  const { data, error } = await supabaseBlog.from('posts').select('*').eq('id', parseInt(id)).single();
+  const cleanId = isNaN(Number(id)) ? id : parseInt(id);
+  const { data, error } = await supabaseBlog.from('posts').select('*').eq('id', cleanId).single();
   if (error || !data) {
     return Astro.redirect('/404');
   }
@@ -87,18 +88,21 @@ if (Astro.request.method === 'POST') {
       return new Response(JSON.stringify({ error: 'Por favor, preencha todos os campos obrigatórios (Título, Slug, Autor e Conteúdo).' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Atualizar no banco com conversão de ID para inteiro
+    // Atualizar no banco com suporte híbrido a UUID e inteiros
+    const cleanId = isNaN(Number(id)) ? id : parseInt(id);
+    const cleanAuthorId = isNaN(Number(authorId)) ? authorId : parseInt(authorId);
+
     const { error } = await supabaseBlog.from('posts').update({
       title,
       slug,
       excerpt,
       category,
-      author_id: parseInt(authorId),
+      author_id: cleanAuthorId,
       read_time: readTime,
       image_url: imageUrl,
       content,
       is_featured: isFeatured
-    }).eq('id', parseInt(id));
+    }).eq('id', cleanId);
 
     if (error) {
       return new Response(JSON.stringify({ error: 'Erro ao atualizar no banco de dados: ' + error.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });
