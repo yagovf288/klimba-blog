@@ -58,13 +58,11 @@ if (Astro.request.method === 'POST') {
     // Upload de Imagem para o Supabase Storage (se houver novo arquivo)
     const imageFile = formData.get('image_file') as File;
     if (imageFile && imageFile.size > 0) {
-      const arrayBuffer = await imageFile.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
       const fileName = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
       
       const { data: uploadData, error: uploadError } = await supabaseBlog.storage
         .from('images')
-        .upload(fileName, buffer, {
+        .upload(fileName, imageFile, {
           contentType: imageFile.type,
           upsert: true
         });
