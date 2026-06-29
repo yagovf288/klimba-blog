@@ -75,7 +75,7 @@ if (Astro.request.method === 'POST') {
     // Inserir na tabela posts com suporte híbrido a UUID e inteiros
     const cleanAuthorId = isNaN(Number(authorId)) ? authorId : parseInt(authorId);
 
-    const { error } = await supabaseBlog.from('posts').insert({
+    const { data: insertedData, error } = await supabaseBlog.from('posts').insert({
       title,
       slug,
       excerpt,
@@ -86,7 +86,9 @@ if (Astro.request.method === 'POST') {
       content,
       is_featured: isFeatured,
       publish_date: publishDate
-    });
+    }).select();
+
+    console.log("DEBUG: Retorno exato do Supabase pós-insert:", { insertedData, error });
 
     if (error) {
       return new Response(JSON.stringify({ error: 'Erro ao salvar no banco de dados: ' + error.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });

@@ -94,7 +94,7 @@ if (Astro.request.method === 'POST') {
 
     console.log("DEBUG: Atualizando Post no Supabase...", { cleanId, slug, imageUrl });
 
-    const { error } = await supabaseBlog.from('posts').update({
+    const { data: updatedData, error } = await supabaseBlog.from('posts').update({
       title,
       slug,
       excerpt,
@@ -104,7 +104,9 @@ if (Astro.request.method === 'POST') {
       image_url: imageUrl,
       content,
       is_featured: isFeatured
-    }).eq('id', cleanId);
+    }).eq('id', cleanId).select();
+
+    console.log("DEBUG: Retorno exato do Supabase pós-update:", { updatedData, error });
 
     if (error) {
       return new Response(JSON.stringify({ error: 'Erro ao atualizar no banco de dados: ' + error.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });
