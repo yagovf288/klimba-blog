@@ -67,11 +67,13 @@ const renderContentParagraphs = (content: string) => {
 };
 
 const paragraphs = renderContentParagraphs(post.content);
+const seoTitle = post.seoTitle || `${post.title} | ${blogConfig.companyName} Blog`;
+const seoDescription = post.seoDescription || post.excerpt;
 ---
 
 <Layout
-  title={`${post.title} | Klimba Blog`}
-  description={post.excerpt}
+  title={seoTitle}
+  description={seoDescription}
   image={post.imageUrl}
   articleDate={post.publishDate}
   authorName={author?.name}
@@ -83,12 +85,12 @@ const paragraphs = renderContentParagraphs(post.content);
     set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "BlogPosting",
-      mainEntityOfPage: {
+      "mainEntityOfPage": {
         "@type": "WebPage",
         "@id": Astro.url.href,
       },
-      headline: post.title,
-      description: post.excerpt,
+      "headline": post.title,
+      "description": seoDescription,
       image: post.imageUrl,
       author: {
         "@type": "Person",

@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS blog.posts (
     read_time TEXT NULL,
     image_url TEXT NULL,
     is_featured BOOLEAN NULL DEFAULT false,
+    status TEXT DEFAULT 'PUBLISHED' CHECK (status IN ('DRAFT', 'PUBLISHED')),
+    seo_title TEXT NULL,
+    seo_description TEXT NULL,
     created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
     CONSTRAINT posts_pkey PRIMARY KEY (id),
     CONSTRAINT posts_slug_key UNIQUE (slug),
@@ -52,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_slug ON blog.posts USING btree (slug);
 CREATE INDEX IF NOT EXISTS idx_posts_category ON blog.posts USING btree (category);
 CREATE INDEX IF NOT EXISTS idx_posts_publish_date ON blog.posts USING btree (publish_date DESC);
 
--- Tabela de Leads (Captura do Chatbot)
+-- Tabela de Leads (Captura do Chatbot com rastreamento UTM)
 CREATE TABLE IF NOT EXISTS blog.leads (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -60,7 +63,26 @@ CREATE TABLE IF NOT EXISTS blog.leads (
     whatsapp TEXT NOT NULL,
     feedback TEXT,
     post_slug TEXT,
+    utm_source TEXT NULL,
+    utm_medium TEXT NULL,
+    utm_campaign TEXT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Tabela de Tags
+CREATE TABLE IF NOT EXISTS blog.tags (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT tags_slug_key UNIQUE (slug)
+);
+
+-- Tabela Relacional Muitos-para-Muitos (Posts <-> Tags)
+CREATE TABLE IF NOT EXISTS blog.posts_tags (
+    post_id UUID REFERENCES blog.posts(id) ON DELETE CASCADE,
+    tag_id UUID REFERENCES blog.tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, tag_id)
 );
 
 -- 3. TABELAS DO SCHEMA ANALYTICS
@@ -122,11 +144,12 @@ CREATE POLICY "Allow public select on blog" ON storage.objects FOR SELECT TO ano
 CREATE POLICY "Allow anon insert on blog" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'blog');
 CREATE POLICY "Allow anon update on blog" ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'blog');
 
--- 5. PERMISSÕES DE ACESSO DO USUÁRIO ANON (API REST)
 -- Desativa segurança de linha nas tabelas do blog (administradas pelo painel restrito)
 ALTER TABLE blog.posts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE blog.authors DISABLE ROW LEVEL SECURITY;
 ALTER TABLE blog.leads DISABLE ROW LEVEL SECURITY;
+ALTER TABLE blog.tags DISABLE ROW LEVEL SECURITY;
+ALTER TABLE blog.posts_tags DISABLE ROW LEVEL SECURITY;
 
 -- Liberar privilégios para o schema 'analytics'
 GRANT USAGE ON SCHEMA analytics TO anon;

@@ -26,6 +26,9 @@ export interface BlogPost {
   readTime: string;
   imageUrl: string;
   isFeatured?: boolean;
+  status?: 'DRAFT' | 'PUBLISHED';
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export interface PageInfo {

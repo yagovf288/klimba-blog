@@ -24,7 +24,10 @@ const transformPost = (record: any): BlogPost => ({
   publishDate: record.publish_date || record.publishDate,
   readTime: record.read_time || record.readTime,
   imageUrl: record.image_url || record.imageUrl,
-  isFeatured: record.is_featured ?? record.isFeatured ?? false
+  isFeatured: record.is_featured ?? record.isFeatured ?? false,
+  status: record.status as 'DRAFT' | 'PUBLISHED',
+  seoTitle: record.seo_title || record.seoTitle,
+  seoDescription: record.seo_description || record.seoDescription
 });
 
 const transformAuthor = (record: any): Author => ({
@@ -42,6 +45,7 @@ export const blogService = {
     const { data, error, count } = await supabase
       .from('posts')
       .select('*', { count: 'exact' })
+      .eq('status', 'PUBLISHED')
       .range(from, to)
       .order('publish_date', { ascending: false, nullsFirst: false });
 
@@ -51,6 +55,7 @@ export const blogService = {
       const retry = await supabase
         .from('posts')
         .select('*', { count: 'exact' })
+        .eq('status', 'PUBLISHED')
         .range(from, to)
         .order('id', { ascending: false });
       
@@ -85,6 +90,7 @@ export const blogService = {
       .from('posts')
       .select('*')
       .eq('slug', slug)
+      .eq('status', 'PUBLISHED')
       .single();
 
     if (error) {
@@ -123,6 +129,7 @@ export const blogService = {
       .from('posts')
       .select('*', { count: 'exact' })
       .eq('category', category)
+      .eq('status', 'PUBLISHED')
       .range(from, to)
       .order('publish_date', { ascending: false });
 
@@ -146,6 +153,7 @@ export const blogService = {
     const { data, error } = await supabase
       .from('posts')
       .select('*')
+      .eq('status', 'PUBLISHED')
       .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
       .limit(50);
 

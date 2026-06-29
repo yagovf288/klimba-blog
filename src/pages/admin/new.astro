@@ -35,6 +35,9 @@ if (Astro.request.method === 'POST') {
     let imageUrl = formData.get('image_url')?.toString() || '';
     const content = formData.get('content')?.toString() || '';
     const isFeatured = formData.get('is_featured') === 'true';
+    const status = formData.get('status')?.toString() || 'PUBLISHED';
+    const seoTitle = formData.get('seo_title')?.toString() || '';
+    const seoDescription = formData.get('seo_description')?.toString() || '';
     // Usar data no formato ISO compatível com timestamp do Postgres
     const publishDate = new Date().toISOString();
 
@@ -86,7 +89,10 @@ if (Astro.request.method === 'POST') {
       image_url: imageUrl,
       content,
       is_featured: isFeatured,
-      publish_date: publishDate
+      publish_date: publishDate,
+      status,
+      seo_title: seoTitle || null,
+      seo_description: seoDescription || null
     }).select();
 
     console.log("DEBUG: Retorno exato do Supabase pós-insert:", { insertedData, error });
@@ -200,6 +206,19 @@ if (Astro.request.method === 'POST') {
             />
           </div>
 
+          <!-- Status de Publicação -->
+          <div>
+            <label for="status" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Status de Publicação</label>
+            <select
+              name="status"
+              id="status"
+              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body font-bold"
+            >
+              <option value="PUBLISHED">Publicado (Visível no Blog)</option>
+              <option value="DRAFT">Rascunho (Oculto)</option>
+            </select>
+          </div>
+
           <!-- Imagem de Capa (Upload ou URL) -->
           <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
@@ -221,6 +240,33 @@ if (Astro.request.method === 'POST') {
                 class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
                 placeholder="https://exemplo.com/imagem.png"
               />
+            </div>
+          </div>
+
+          <!-- Configurações Opcionais de SEO -->
+          <div class="md:col-span-2 border-t border-gray-100 pt-8 mt-4">
+            <h3 class="text-sm font-black text-secondary uppercase tracking-wider mb-6 font-display">Configurações de SEO (Opcional)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label for="seo_title" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Meta Título SEO</label>
+                <input
+                  type="text"
+                  name="seo_title"
+                  id="seo_title"
+                  class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
+                  placeholder="Título otimizado para o Google (max 60 caracteres)"
+                />
+              </div>
+              <div>
+                <label for="seo_description" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Meta Descrição SEO</label>
+                <textarea
+                  name="seo_description"
+                  id="seo_description"
+                  rows="2"
+                  class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body leading-relaxed"
+                  placeholder="Resumo otimizado para o Google (max 160 caracteres)"
+                ></textarea>
+              </div>
             </div>
           </div>
 

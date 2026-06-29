@@ -5,7 +5,7 @@ import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from 'astro:env/server';
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { name, email, whatsapp, feedback, postSlug } = body;
+    const { name, email, whatsapp, feedback, postSlug, utmSource, utmMedium, utmCampaign } = body;
 
     // Validações básicas obrigatórias
     if (!name || !email || !whatsapp) {
@@ -27,7 +27,10 @@ export const POST: APIRoute = async ({ request }) => {
         email: email.trim().toLowerCase(),
         whatsapp: whatsapp.trim(),
         feedback: feedback ? feedback.trim() : null,
-        post_slug: postSlug ? postSlug.trim() : null
+        post_slug: postSlug ? postSlug.trim() : null,
+        utm_source: utmSource ? utmSource.trim() : null,
+        utm_medium: utmMedium ? utmMedium.trim() : null,
+        utm_campaign: utmCampaign ? utmCampaign.trim() : null
       })
       .select();
 

@@ -54,6 +54,19 @@ const AiInsight: React.FC<AiInsightProps> = ({ postTitle, postContent, postSlug 
   const [insight, setInsight] = useState<string>('');
   const [loadingText, setLoadingText] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [utmParams, setUtmParams] = useState({ source: '', medium: '', campaign: '' });
+
+  // Capturar parâmetros UTM da URL na montagem do componente no cliente
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setUtmParams({
+        source: params.get('utm_source') || '',
+        medium: params.get('utm_medium') || '',
+        campaign: params.get('utm_campaign') || ''
+      });
+    }
+  }, []);
 
   // Transição de Feedback -> Captura de Lead
   const handleFeedbackSubmit = (e: React.FormEvent) => {
@@ -87,7 +100,10 @@ const AiInsight: React.FC<AiInsightProps> = ({ postTitle, postContent, postSlug 
           email,
           whatsapp,
           feedback,
-          postSlug
+          postSlug,
+          utmSource: utmParams.source || null,
+          utmMedium: utmParams.medium || null,
+          utmCampaign: utmParams.campaign || null
         })
       });
 

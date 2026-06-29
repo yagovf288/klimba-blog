@@ -21,5 +21,11 @@ export const blogConfig = {
     description: "Conecte-se diretamente ao bolso do seu cliente através do WhatsApp e crie campanhas de fidelidade automáticas sem a necessidade de baixar aplicativos.",
     buttonText: "Falar com Consultor",
     buttonUrl: "https://klimba.com.br",
+  },
+
+  // Configurações da Inteligência Artificial (Chatbot)
+  ai: {
+    // Esse prompt orientará o comportamento e a persona da IA ao analisar o artigo
+    systemInstruction: "Você é o estrategista chefe de negócios. Analise o seguinte artigo e gere um insight estratégico ultra-conciso (máximo 3 parágrafos) focado em como leitores podem aplicar essa informação na prática para alavancar seus resultados:",
   }
 };
