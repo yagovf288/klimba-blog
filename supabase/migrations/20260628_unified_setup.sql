@@ -52,6 +52,17 @@ CREATE INDEX IF NOT EXISTS idx_posts_slug ON blog.posts USING btree (slug);
 CREATE INDEX IF NOT EXISTS idx_posts_category ON blog.posts USING btree (category);
 CREATE INDEX IF NOT EXISTS idx_posts_publish_date ON blog.posts USING btree (publish_date DESC);
 
+-- Tabela de Leads (Captura do Chatbot)
+CREATE TABLE IF NOT EXISTS blog.leads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    whatsapp TEXT NOT NULL,
+    feedback TEXT,
+    post_slug TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- 3. TABELAS DO SCHEMA ANALYTICS
 -- Visualizações de Página
 CREATE TABLE IF NOT EXISTS analytics.page_views (
@@ -115,6 +126,7 @@ CREATE POLICY "Allow anon update on blog" ON storage.objects FOR UPDATE TO anon,
 -- Desativa segurança de linha nas tabelas do blog (administradas pelo painel restrito)
 ALTER TABLE blog.posts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE blog.authors DISABLE ROW LEVEL SECURITY;
+ALTER TABLE blog.leads DISABLE ROW LEVEL SECURITY;
 
 -- Liberar privilégios para o schema 'analytics'
 GRANT USAGE ON SCHEMA analytics TO anon;
