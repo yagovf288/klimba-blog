@@ -103,6 +103,58 @@ Ainda na tela de criação (ou posteriormente nas configurações do projeto em 
 
 > ⚠️ **Importante**: Sempre que alterar qualquer variável de ambiente nas configurações do painel da Cloudflare, você deve ir na aba **Deployments** e fazer um **Redeploy** (Refazer Deploy) para que a Cloudflare compile a nova versão do código lendo as novas chaves.
 
+## 🔌 Passo 5: Uso da API REST (Integrações e Automações)
+
+O blog oferece endpoints prontos para que sistemas externos possam listar posts, subir imagens e publicar novos artigos de forma remota e automatizada.
+
+### 1. Autenticação
+Todas as requisições de escrita (`POST`) exigem o cabeçalho HTTP de segurança:
+*   `Authorization: Bearer <API_KEY>` (Ou o header customizado `X-API-Key: <API_KEY>`)
+
+---
+
+### 2. Upload Remoto de Mídia (Imagens de Capa)
+Permite enviar arquivos de imagem para o bucket `blog` do Supabase Storage.
+*   **Endpoint**: `POST /api/media/upload`
+*   **Corpo da Requisição (Multipart Form Data)**:
+    *   `file`: O arquivo binário da imagem (PNG, JPG, WEBP).
+    *   `fileName` (Opcional): Nome personalizado para salvar a imagem.
+*   **Resposta (JSON)**:
+    ```json
+    {
+      "success": true,
+      "url": "https://seu-projeto.supabase.co/storage/v1/object/public/blog/images/nome-do-arquivo.webp",
+      "fileName": "nome-do-arquivo.webp"
+    }
+    ```
+
+---
+
+### 3. Criar Post Remotamente
+*   **Endpoint**: `POST /api/posts`
+*   **Corpo da Requisição (JSON)**:
+    ```json
+    {
+      "title": "Como Automatizar Vendas com CRM",
+      "content": "Conteúdo completo em texto ou Markdown...",
+      "authorId": "id_do_autor_no_supabase",
+      "category": "VENDER_MAIS",
+      "imageUrl": "https://seu-projeto.supabase.co/.../images/nome-do-arquivo.webp",
+      "status": "PUBLISHED"
+    }
+    ```
+*   **Resposta (JSON)**: Retorna o objeto criado com status `201`.
+
+---
+
+### 4. Consultar Posts Publicados (Público)
+Permite expor a lista de postagens do seu blog de forma pública para qualquer outro site ou app.
+*   **Endpoint**: `GET /api/posts`
+*   **Parâmetros de URL (Opcionais)**:
+    *   `page`: Número da página (padrão: `1`)
+    *   `limit`: Limite por página (padrão: `10`)
+    *   `category`: Filtrar por categoria (ex: `FAZER_VOLTAR`)
+
 ---
 
 ## 📁 Estrutura do Projeto
@@ -111,6 +163,6 @@ Ainda na tela de criação (ou posteriormente nas configurações do projeto em 
 *   `/src/components/AnalyticsTracker.astro` - Script cliente leve para monitoramento de acessos (sessão, tempo de leitura, cliques).
 *   `/src/components/AiInsight.tsx` - Componente React do **AI Intelligence** (Chatbot e captura de leads).
 *   `/src/pages/admin/` - Rotas protegidas do painel administrativo (login, dashboard de métricas e CRUD de artigos).
-*   `/src/pages/api/` - Roteamento de APIs internas do blog (Analytics, Insight e Leads).
+*   `/src/pages/api/` - Roteamento de APIs internas e externas do blog.
 *   `/src/services/` - Conectores de serviços (Supabase e Gemini).
 *   `/supabase/migrations/` - Scripts SQL para rápida replicação de banco de dados.
