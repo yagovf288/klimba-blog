@@ -34,11 +34,8 @@ if (Astro.request.method === 'POST') {
     let imageUrl = formData.get('image_url')?.toString() || '';
     const content = formData.get('content')?.toString() || '';
     const isFeatured = formData.get('is_featured') === 'true';
-    const publishDate = new Date().toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
+    // Usar data no formato ISO compatível com timestamp do Postgres
+    const publishDate = new Date().toISOString();
 
     // Upload de Imagem para o Supabase Storage (se houver arquivo)
     const imageFile = formData.get('image_file') as File;
@@ -64,6 +61,8 @@ if (Astro.request.method === 'POST') {
         imageUrl = publicUrl;
       }
     }
+
+    console.log("DEBUG: Gravando Post no Supabase...", { slug, imageUrl, publishDate });
 
     if (errorMessage) {
       return new Response(JSON.stringify({ error: errorMessage }), { status: 400, headers: { 'Content-Type': 'application/json' } });

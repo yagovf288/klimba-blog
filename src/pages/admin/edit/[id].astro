@@ -92,6 +92,8 @@ if (Astro.request.method === 'POST') {
     const cleanId = isNaN(Number(id)) ? id : parseInt(id);
     const cleanAuthorId = isNaN(Number(authorId)) ? authorId : parseInt(authorId);
 
+    console.log("DEBUG: Atualizando Post no Supabase...", { cleanId, slug, imageUrl });
+
     const { error } = await supabaseBlog.from('posts').update({
       title,
       slug,
