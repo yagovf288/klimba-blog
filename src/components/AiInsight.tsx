@@ -3,86 +3,251 @@ import React, { useState } from 'react';
 interface AiInsightProps {
   postTitle: string;
   postContent: string;
+  postSlug: string;
 }
 
-const AiInsight: React.FC<AiInsightProps> = ({ postTitle, postContent }) => {
-  const [insight, setInsight] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+type ChatState = 'welcome' | 'lead_capture' | 'loading' | 'insight';
 
-  const fetchInsight = async () => {
-    setLoading(true);
+const AiInsight: React.FC<AiInsightProps> = ({ postTitle, postContent, postSlug }) => {
+  const [chatState, setChatState] = useState<ChatState>('welcome');
+  const [feedback, setFeedback] = useState<string>('');
+  const [name, setName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [whatsapp, setWhatsapp] = useState<string>('');
+  const [insight, setInsight] = useState<string>('');
+  const [loadingText, setLoadingText] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  // Transição de Feedback -> Captura de Lead
+  const handleFeedbackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedback.trim()) {
+      setError('Por favor, compartilhe sua opinião antes de prosseguir.');
+      return;
+    }
+    setError('');
+    setChatState('lead_capture');
+  };
+
+  // Enviar Lead + Buscar Insight da IA do Gemini
+  const handleLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim() || !whatsapp.trim()) {
+      setError('Por favor, preencha todos os campos.');
+      return;
+    }
+    setError('');
+    setChatState('loading');
+    setLoadingText('Registrando lead...');
+
     try {
-      const response = await fetch('/api/insight', {
+      // 1. Salvar Lead no Supabase via API
+      const leadResponse = await fetch('/api/leads', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: postTitle,
-          content: postContent,
-        }),
+          name,
+          email,
+          whatsapp,
+          feedback,
+          postSlug
+        })
       });
 
-      if (!response.ok) {
-        throw new Error('Falha ao gerar insights');
+      if (!leadResponse.ok) {
+        const leadErr = await leadResponse.json();
+        throw new Error(leadErr.error || 'Falha ao salvar lead.');
       }
 
-      const data = await response.json();
-      setInsight(data.insight || 'Não foi possível obter os insights.');
-    } catch (error) {
-      console.error(error);
-      setInsight('Erro ao conectar-se à Klimba Intelligence. Verifique sua chave de API.');
-    } finally {
-      setLoading(false);
+      // 2. Chamar IA do Gemini para gerar o Insight
+      setLoadingText('Sintonizando Klimba Intelligence...');
+      const aiResponse = await fetch('/api/insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: postTitle,
+          content: postContent
+        })
+      });
+
+      if (!aiResponse.ok) {
+        throw new Error('Falha ao gerar insights da IA.');
+      }
+
+      const aiData = await aiResponse.json();
+      setInsight(aiData.insight || 'Insight estratégico gerado com sucesso.');
+      setChatState('insight');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Erro ao processar requisição. Tente novamente.');
+      setChatState('lead_capture');
     }
   };
 
   return (
-    <div className="bg-secondary rounded-4xl p-10 md:p-14 border border-white/5 shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 p-8 opacity-5 text-primary scale-150 group-hover:rotate-12 transition-transform duration-700">
+    <div className="bg-secondary rounded-[2.5rem] p-10 md:p-14 border border-white/5 shadow-2xl relative overflow-hidden group">
+      {/* Elemento Visual Decorativo */}
+      <div className="absolute top-0 right-0 p-8 opacity-5 text-primary scale-150 group-hover:rotate-12 transition-transform duration-700 select-none pointer-events-none">
         <span className="material-symbols-outlined text-9xl">psychology</span>
       </div>
       
+      {/* Cabeçalho Fixo */}
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-10 relative z-10">
         <div className="bg-primary size-14 rounded-3xl flex items-center justify-center text-secondary shadow-lg rotate-6">
           <span className="material-symbols-outlined text-3xl">auto_awesome</span>
         </div>
         <div>
           <h3 className="text-2xl font-black text-primary font-display">Klimba Intelligence</h3>
-          <p className="text-slate-400 text-sm font-bold tracking-widest uppercase">Análise estratégica baseada em IA</p>
+          <p className="text-slate-400 text-sm font-bold tracking-widest uppercase">Inteligência Artificial e CRM</p>
         </div>
       </div>
-      
-      {insight ? (
-        <div className="text-white animate-in fade-in slide-in-from-bottom-4 relative z-10">
-          <div className="whitespace-pre-line leading-relaxed text-lg bg-white/5 backdrop-blur-md p-8 md:p-10 rounded-4xl border border-white/10 shadow-inner font-body">
-            {insight}
+
+      <div className="relative z-10 space-y-6">
+        
+        {/* Mensagem de Erro */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-2xl text-sm font-semibold flex items-center gap-3 animate-in fade-in">
+            <span className="material-symbols-outlined text-lg">error</span>
+            {error}
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-8 relative z-10">
-          <p className="text-slate-300 text-lg mb-10 italic max-w-xl mx-auto font-body">
-            Gere insights instantâneos para este artigo usando nossa rede neural proprietária.
-          </p>
-          <button 
-            onClick={fetchInsight}
-            disabled={loading}
-            className="inline-flex items-center gap-4 px-10 py-5 bg-primary text-secondary tracking-widest text-xs uppercase rounded-full font-black hover:bg-primary-hover transition-all disabled:opacity-50 shadow-xl hover:shadow-primary/20 active:scale-95"
-          >
-            {loading ? (
-              <>
-                <span className="animate-spin material-symbols-outlined text-lg">sync</span>
-                Sintonizando Canais...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-lg">rocket_launch</span>
-                Ativar Visão Estratégica
-              </>
-            )}
-          </button>
-        </div>
-      )}
+        )}
+
+        {/* FLUXO 1: Boas-vindas e Pergunta de Feedback */}
+        {chatState === 'welcome' && (
+          <form onSubmit={handleFeedbackSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl text-white font-body leading-relaxed">
+              <p className="text-lg font-medium text-slate-200">
+                Olá! Sou o **Klimba Intelligence**. 🤖
+              </p>
+              <p className="mt-2 text-slate-300 font-body">
+                O que você achou de mais valioso ou relevante neste artigo sobre CRM de varejo? Compartilhe abaixo para iniciar nossa análise estratégica.
+              </p>
+            </div>
+
+            <textarea
+              required
+              rows={3}
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="ex: Gostei da explicação sobre como a automação de mensagens economiza tempo..."
+              className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-3xl text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 outline-none transition-all font-body leading-relaxed"
+            />
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-secondary tracking-widest text-xs uppercase rounded-full font-black hover:bg-primary-hover transition-all shadow-xl hover:shadow-primary/20 active:scale-95 animate-pulse"
+              >
+                Enviar Opinião
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* FLUXO 2: Captação de Lead */}
+        {chatState === 'lead_capture' && (
+          <form onSubmit={handleLeadSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            {/* Balão do comentário do usuário */}
+            <div className="flex justify-end">
+              <div className="bg-primary/10 border border-primary/20 text-slate-200 px-6 py-4 rounded-3xl text-sm italic max-w-lg font-body">
+                "{feedback}"
+              </div>
+            </div>
+
+            {/* Balão de resposta do Bot */}
+            <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl text-white font-body leading-relaxed">
+              <p className="text-lg font-medium text-slate-200">
+                Sensacional! Ótimo insight. 🎯
+              </p>
+              <p className="mt-2 text-slate-300 font-body">
+                Para que eu possa liberar a **Análise Estratégica Baseada em IA** para este post e te enviar conteúdos exclusivos para alavancar as vendas do seu negócio, informe seus dados:
+              </p>
+            </div>
+
+            {/* Inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Seu Nome</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="ex: João Silva"
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 outline-none transition-all font-body"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">WhatsApp</label>
+                <input
+                  type="tel"
+                  required
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="ex: (11) 99999-9999"
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 outline-none transition-all font-body"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">E-mail</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ex: joao@seuvarejo.com"
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 outline-none transition-all font-body"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-secondary tracking-widest text-xs uppercase rounded-full font-black hover:bg-primary-hover transition-all shadow-xl hover:shadow-primary/20 active:scale-95"
+              >
+                Desbloquear Insights de IA
+                <span className="material-symbols-outlined text-sm">lock_open</span>
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* FLUXO 3: Estado de Carregamento (Loading) */}
+        {chatState === 'loading' && (
+          <div className="py-16 text-center animate-in fade-in zoom-in-95 space-y-4">
+            <span className="animate-spin material-symbols-outlined text-5xl text-primary block mx-auto">sync</span>
+            <p className="text-slate-300 text-lg font-body">{loadingText}</p>
+          </div>
+        )}
+
+        {/* FLUXO 4: Sucesso e Exibição de Insights */}
+        {chatState === 'insight' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            {/* Confirmação de Sucesso */}
+            <div className="bg-primary/10 border border-primary/20 p-6 rounded-3xl flex items-start gap-4">
+              <span className="material-symbols-outlined text-primary text-3xl shrink-0">check_circle</span>
+              <div>
+                <h4 className="text-lg font-black text-primary font-display">Acesso Liberado!</h4>
+                <p className="text-slate-300 text-sm mt-1 font-body">
+                  Parabéns, **{name}**! Seus dados foram salvos. Abaixo está o insight estratégico do Klimba Intelligence preparado exclusivamente para você.
+                </p>
+              </div>
+            </div>
+
+            {/* Insight Gerado pela IA */}
+            <div className="text-white relative">
+              <div className="whitespace-pre-line leading-relaxed text-lg bg-white/5 backdrop-blur-md p-8 md:p-10 rounded-4xl border border-white/10 shadow-inner font-body">
+                {insight}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };

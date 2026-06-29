@@ -209,7 +209,7 @@ const paragraphs = renderContentParagraphs(post.content);
 
     <!-- AI Insight Section (Hydrated Client-Side on visibility) -->
     <div class="w-full max-w-[900px] mx-auto px-6 mt-16 mb-20">
-      <AiInsight client:visible postTitle={post.title} postContent={post.content} />
+      <AiInsight client:visible postTitle={post.title} postContent={post.content} postSlug={post.slug} />
     </div>
 
     <!-- Related Posts Section -->
