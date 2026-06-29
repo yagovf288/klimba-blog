@@ -4,12 +4,8 @@ import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from 'astro:env/server';
 const supabaseUrl = VITE_SUPABASE_URL || 'https://bmwexlxsjznbpyoqxvfu.supabase.co';
 const supabaseKey = VITE_SUPABASE_ANON_KEY;
 
-// Inicializa o cliente conectado ao schema 'analytics'
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  db: {
-    schema: 'analytics'
-  }
-});
+// Inicializa o cliente conectado ao schema 'public' padrão
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const analyticsService = {
   // Registrar uma visualização de página

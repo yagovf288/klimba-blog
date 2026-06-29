@@ -31,7 +31,7 @@ if (Astro.request.method === 'POST') {
     const category = formData.get('category')?.toString() || Category.TRAZER_CLIENTES;
     const authorId = formData.get('author_id')?.toString() || '';
     const readTime = formData.get('read_time')?.toString() || '5 min de leitura';
-    const imageUrl = formData.get('image_url')?.toString() || '';
+    let imageUrl = formData.get('image_url')?.toString() || '';
     const content = formData.get('content')?.toString() || '';
     const isFeatured = formData.get('is_featured') === 'true';
     const publishDate = new Date().toLocaleDateString('pt-BR', {
@@ -40,27 +40,54 @@ if (Astro.request.method === 'POST') {
       year: 'numeric'
     });
 
-    if (!title || !slug || !content || !authorId) {
-      errorMessage = 'Por favor, preencha todos os campos obrigatórios (Título, Slug, Autor e Conteúdo).';
-    } else {
-      // Inserir na tabela posts
-      const { error } = await supabaseBlog.from('posts').insert({
-        title,
-        slug,
-        excerpt,
-        category,
-        author_id: parseInt(authorId),
-        read_time: readTime,
-        image_url: imageUrl,
-        content,
-        is_featured: isFeatured,
-        publish_date: publishDate
-      });
-
-      if (error) {
-        errorMessage = 'Erro ao salvar no banco de dados: ' + error.message;
+    // Upload de Imagem para o Supabase Storage (se houver arquivo)
+    const imageFile = formData.get('image_file') as File;
+    if (imageFile && imageFile.size > 0) {
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const fileName = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      
+      const { data: uploadData, error: uploadError } = await supabaseBlog.storage
+        .from('images')
+        .upload(fileName, buffer, {
+          contentType: imageFile.type,
+          upsert: true
+        });
+      
+      if (uploadError) {
+        console.error("Erro no upload do Storage:", uploadError);
+        errorMessage = 'Erro ao fazer upload da imagem: ' + uploadError.message;
       } else {
-        return Astro.redirect('/admin');
+        const { data: { publicUrl } } = supabaseBlog.storage
+          .from('images')
+          .getPublicUrl(fileName);
+        imageUrl = publicUrl;
+      }
+    }
+
+    if (!errorMessage) {
+      if (!title || !slug || !content || !authorId) {
+        errorMessage = 'Por favor, preencha todos os campos obrigatórios (Título, Slug, Autor e Conteúdo).';
+      } else {
+        // Inserir na tabela posts
+        const { error } = await supabaseBlog.from('posts').insert({
+          title,
+          slug,
+          excerpt,
+          category,
+          author_id: parseInt(authorId),
+          read_time: readTime,
+          image_url: imageUrl,
+          content,
+          is_featured: isFeatured,
+          publish_date: publishDate
+        });
+
+        if (error) {
+          errorMessage = 'Erro ao salvar no banco de dados: ' + error.message;
+        } else {
+          return Astro.redirect('/admin');
+        }
       }
     }
   } catch (err) {
@@ -97,7 +124,7 @@ if (Astro.request.method === 'POST') {
       )}
 
       <!-- Formulário -->
-      <form method="POST" class="bg-white p-10 rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 space-y-8">
+      <form method="POST" enctype="multipart/form-data" class="bg-white p-10 rounded-4xl border border-gray-100 shadow-xl shadow-secondary/5 space-y-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           <!-- Título -->
@@ -169,16 +196,28 @@ if (Astro.request.method === 'POST') {
             />
           </div>
 
-          <!-- URL da Imagem -->
-          <div class="md:col-span-2">
-            <label for="image_url" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">URL da Imagem de Capa</label>
-            <input
-              type="url"
-              name="image_url"
-              id="image_url"
-              class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
-              placeholder="https://exemplo.com/imagem.png"
-            />
+          <!-- Imagem de Capa (Upload ou URL) -->
+          <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <label for="image_file" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Upload de Imagem (Supabase Storage)</label>
+              <input
+                type="file"
+                name="image_file"
+                id="image_file"
+                accept="image/*"
+                class="w-full px-5 py-3.5 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
+              />
+            </div>
+            <div>
+              <label for="image_url" class="block text-xs font-black uppercase tracking-widest text-secondary mb-2">Ou URL da Imagem de Capa</label>
+              <input
+                type="text"
+                name="image_url"
+                id="image_url"
+                class="w-full px-5 py-4 bg-background-light border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-primary/30 outline-none transition-all text-secondary font-body"
+                placeholder="https://exemplo.com/imagem.png"
+              />
+            </div>
           </div>
 
           <!-- Excerpt / Descrição -->

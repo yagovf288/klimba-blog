@@ -1,14 +1,20 @@
 ---
 // AnalyticsTracker.astro - Script cliente para monitoramento de visitas
+const isBlockedPath = Astro.url.pathname.startsWith('/admin');
 ---
+{!isBlockedPath && (
 <script>
   (() => {
     // 1. Gerenciamento de Sessão Unívoca
     let sessionId = sessionStorage.getItem('klimba_sid');
     if (!sessionId) {
-      sessionId = crypto.randomUUID 
-        ? crypto.randomUUID() 
-        : 'sid_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c: any) => {
+            const num = parseInt(c, 10);
+            const randomByte = crypto.getRandomValues(new Uint8Array(1))[0] & 15;
+            return (num ^ (randomByte & 15 >> num / 4)).toString(16);
+          });
       sessionStorage.setItem('klimba_sid', sessionId);
     }
 
@@ -156,3 +162,4 @@
     });
   })();
 </script>
+)}
