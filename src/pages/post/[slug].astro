@@ -69,9 +69,15 @@ const renderContentParagraphs = (content: string) => {
 const paragraphs = renderContentParagraphs(post.content);
 const seoTitle = post.seoTitle || `${post.title} | ${blogConfig.companyName} Blog`;
 const seoDescription = post.seoDescription || post.excerpt;
-// post.publishDate já vem formatado em PT-BR pelo blogService.
 // Para as metatags Open Graph, o artigo:published_time precisa de ISO 8601.
-const articleDateISO = post.publishDate ? new Date(post.publishDate).toISOString() : undefined;
+let articleDateISO: string | undefined = undefined;
+if (post.publishDateRaw) {
+  try {
+    articleDateISO = new Date(post.publishDateRaw).toISOString();
+  } catch (e) {
+    console.error("Erro ao converter publishDateRaw para ISO:", e);
+  }
+}
 ---
 
 <Layout
@@ -107,7 +113,7 @@ const articleDateISO = post.publishDate ? new Date(post.publishDate).toISOString
           url: new URL("/assets/klimba.svg", Astro.url.origin).href,
         },
       },
-      datePublished: post.publishDate,
+      datePublished: post.publishDateRaw || post.publishDate,
     })}
   />
   <div class="bg-background-light py-12">

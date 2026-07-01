@@ -23,6 +23,7 @@ export interface BlogPost {
   category: Category;
   authorId: string;
   publishDate: string;
+  publishDateRaw?: string;
   readTime: string;
   imageUrl: string;
   isFeatured?: boolean;

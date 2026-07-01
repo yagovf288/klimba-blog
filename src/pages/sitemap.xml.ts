@@ -15,7 +15,13 @@ export const GET: APIRoute = async ({ site, url }) => {
   const sitemapItems = posts.map(post => {
     // Formata a data se possível
     let formattedDate = new Date().toISOString().split('T')[0];
-    if (post.publishDate) {
+    if (post.publishDateRaw) {
+      try {
+        formattedDate = new Date(post.publishDateRaw).toISOString().split('T')[0];
+      } catch (e) {
+        // Fallback
+      }
+    } else if (post.publishDate) {
       try {
         formattedDate = new Date(post.publishDate).toISOString().split('T')[0];
       } catch (e) {

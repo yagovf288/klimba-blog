@@ -35,6 +35,7 @@ const transformPost = (record: any): BlogPost => ({
   category: record.category as Category,
   authorId: record.author_id?.toString() || record.authorId?.toString(),
   publishDate: formatDate(record.publish_date || record.publishDate),
+  publishDateRaw: record.publish_date || record.publishDate,
   readTime: record.read_time || record.readTime,
   imageUrl: record.image_url || record.imageUrl,
   isFeatured: record.is_featured ?? record.isFeatured ?? false,
